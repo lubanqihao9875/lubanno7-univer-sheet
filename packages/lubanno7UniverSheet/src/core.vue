@@ -1,5 +1,5 @@
 <template>
-  <div class="lubanno7-universheet-wrapper" :style="config.styleOptions">
+  <div class="lubanno7-univer-sheet-wrapper" :style="config.styleOptions">
     <div ref="sheetContainer" :style="config.styleOptions"></div>
     <!-- 加载遮罩 -->
     <div v-if="pendingUpdates !== 0 || !isTableInitialized" class="custom-loading-mask">
@@ -1601,7 +1601,7 @@ export default {
 
 <style scoped>
 /* 定义CSS变量，统一样式管理 */
-.lubanno7-universheet-wrapper {
+.lubanno7-univer-sheet-wrapper {
   position: relative;
   overflow: hidden;
   --loading-bg: rgba(255, 255, 255, 0.8);

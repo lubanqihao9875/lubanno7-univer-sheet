@@ -1,0 +1,61 @@
+{
+  "name": "lubanno7-univer-sheet",
+  "version": "0.3.0",
+  "description": "基于Univer表格与Element UI设计风格的Vue表格组件，支持嵌套表头、单元格编辑、数据双向绑定",
+  "keywords": [
+    "vue",
+    "univer",
+    "table",
+    "element-ui",
+    "component"
+  ],
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lubanqihao9875/lubanno7-univer-sheet"
+  },
+  "homepage": "https://github.com/lubanqihao9875/lubanno7-univer-sheet#readme",
+  "main": "lib/index.umd.js",
+  "files": [
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "build:lib": "vue-cli-service build --target lib --name index --formats umd --dest lib packages/lubanno7UniverSheet/index.js"
+  },
+  "dependencies": {
+    "@univerjs/preset-sheets-core": "0.10.3",
+    "@univerjs/preset-sheets-data-validation": "0.10.3",
+    "@univerjs/presets": "0.10.3",
+    "element-ui": "^2.14.1",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "peerDependencies": {
+    "vue": "^2.5.17"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.16",
+    "@babel/eslint-parser": "^7.12.16",
+    "@vue/cli-plugin-babel": "~5.0.0",
+    "@vue/cli-plugin-eslint": "~5.0.0",
+    "@vue/cli-service": "~5.0.0",
+    "core-js": "^3.6.5",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.0.3",
+    "node-sass": "^4.12.0",
+    "sass-loader": "^8.0.2",
+    "vue": "^2.6.11",
+    "vue-router": "^3.5.0",
+    "vue-template-compiler": "^2.6.11"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}

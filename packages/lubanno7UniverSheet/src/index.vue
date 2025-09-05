@@ -5,14 +5,14 @@
     :columns="columns"
     :data="data"
     :config="mergedConfig"
-    @updateData="handleEvent('updateData')"
+    @updateData="(params) => emitEvent('updateData', params)"
     @tableInitialized="handleTableInitialized"
-    @tableDataRefreshed="handleEvent('tableDataRefreshed')"
-    @insertRow="handleEvent('insertRow')"
-    @deleteRow="handleEvent('deleteRow')"
-    @rowInserted="handleEvent('rowInserted')"
-    @rowUpdated="handleEvent('rowUpdated')"
-    @cellClicked="handleEvent('cellClicked')"
+    @tableDataRefreshed="(params) => emitEvent('tableDataRefreshed', params)"
+    @insertRow="(params) => emitEvent('insertRow', params)"
+    @deleteRow="(params) => emitEvent('deleteRow', params)"
+    @rowInserted="(params) => emitEvent('rowInserted', params)"
+    @rowUpdated="(params) => emitEvent('rowUpdated', params)"
+    @cellClicked="(params) => emitEvent('cellClicked', params)"
   />
 </template>
 
@@ -180,11 +180,6 @@ export default {
     emitEvent(eventName, params) {
       const emitData = params ? { ...params, exposed: this.exposed } : this.exposed;
       this.$emit(eventName, emitData);
-    },
-    
-    // 统一处理事件
-    handleEvent(eventName) {
-      return (params) => this.emitEvent(eventName, params);
     },
     
     // 表格初始化完成处理（特殊处理，需要更新exposed）

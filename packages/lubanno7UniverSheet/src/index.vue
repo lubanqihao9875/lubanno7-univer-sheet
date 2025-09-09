@@ -101,7 +101,8 @@ export default {
           height: '500px'
         },
         wheelNumberControl: {
-          enabled: true,
+          mode: 'editOnly',
+          isCellAllowed: true,
           step: 1,
           shiftStep: 10
         },

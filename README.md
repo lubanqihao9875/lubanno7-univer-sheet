@@ -207,7 +207,8 @@ config: {
     height: '500px'
   },
   wheelNumberControl: {             // 数字单元格滚轮配置
-    enabled: true,
+    mode: 'editOnly',
+    isCellAllowed: true,
     step: 1,
     shiftStep: 10
   },
@@ -306,7 +307,61 @@ columns: [
 
 ```
 
-### 7. 对外暴露的实例与 API
+### 7. 数字单元格滚轮控制配置
+
+通过在组件配置中设置`wheelNumberControl`属性，可以控制数字单元格的鼠标滚轮调整功能，支持设置触发模式、调整步长以及单元格级别的权限控制。
+
+#### 基本配置示例
+
+```javascript
+wheelNumberControl: {
+  mode: 'editOnly',         // 滚轮控制模式
+  isCellAllowed: true,      // 单元格是否允许滚轮控制
+  step: 1,                  // 默认步长
+  shiftStep: 10             // 按住Shift键时的步长
+}
+```
+
+#### 配置项说明
+
+- **mode**: 滚轮控制触发模式
+  - `'editOnly'`: 仅在单元格处于编辑状态时允许使用滚轮调整值（默认值）
+  - `'selected'`: 单元格处于选中状态（非编辑状态）时也允许使用滚轮调整值
+
+- **isCellAllowed**: 控制哪些单元格允许使用滚轮调整值
+  - `true`: 所有数字单元格（非只读）都允许滚轮调整（默认值）
+  - `false`: 所有单元格都不允许滚轮调整
+  - 函数形式: 可传入函数实现单元格级别的精细控制
+
+- **step**: 默认步长，鼠标滚轮每滚动一次，数字值变化的幅度（默认值：1）
+
+- **shiftStep**: 按住Shift键时的步长，通常设置为比默认步长大的值以实现快速调整（默认值：10）
+
+#### 高级配置示例 - 函数形式的isCellAllowed
+
+```javascript
+wheelNumberControl: {
+  mode: 'selected',
+  // 函数形式实现单元格级别的精细控制
+  isCellAllowed: ({ row, rowIndex, column, cellCol }) => {
+    // 只允许年龄列使用滚轮控制
+    return column.prop === 'age' && 
+           typeof row[column.prop] === 'number';
+  },
+  step: 1,
+  shiftStep: 5
+}
+```
+
+函数形式的`isCellAllowed`接收一个包含以下参数的对象：
+- `row`: 当前行数据对象
+- `rowIndex`: 当前行索引
+- `column`: 当前列配置对象
+- `cellCol`: 当前列索引
+
+通过返回`true`或`false`来决定是否允许当前单元格使用滚轮调整值，从而实现更精细化的控制。
+
+### 8. 对外暴露的实例与 API
 
 组件通过事件参数向外暴露完整能力：
 
@@ -418,7 +473,7 @@ handleTableInitialized(exposed) {
 | batchSize               | 每次加载的数据量，用于异步分批次加载优化                                    | Number  | 500                                                                     |
 | zoom                    | 缩放比例 | Number | 1 |
 | styleOptions            | 容器样式设置                                                  | Object  | { width: '100%', height: '500px' }                                      |
-| wheelNumberControl      | 数字单元格滚轮配置 | Object  | { enabled: true, step: 1, shiftStep: 10 } |
+| wheelNumberControl      | 数字单元格滚轮配置 | Object  | { mode: 'editOnly', isCellAllowed: true, step: 1, shiftStep: 10 } |
 | commonStyle             | 通用样式设置 | Object  | { defaultRowHeight: 20, defaultColumnWidth: 80, backgroundColor: '#fff', borderColor: '#ccc', color: '#000', fontSize: 12 } |
 | headerStyle             | 表头样式设置       | Object  | { backgroundColor: '#cfe2f3', fontWeight: 'normal' } |
 | readonlyCellStyle       | 只读单元格样式设置    | Object  | { backgroundColor: '#eee', fontWeight: 'normal' }    |

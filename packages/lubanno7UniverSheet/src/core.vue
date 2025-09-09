@@ -127,7 +127,10 @@ export default {
       currentTableData: [], // 当前表格数据（内部维护）
       disposableManager: new DisposableManager(), // 资源管理器实例
       isEditing: false, // 是否处于编辑状态
-      editingCell: { row: -1, column: -1, isNumber: false } // 当前编辑单元格信息
+      hasActiveRangeBeenSet: false, // 是否已设置激活范围
+      updatingCells: [], // 正在更新的单元格数组
+      editingCell: { row: -1, column: -1, currentValue: null }, // 当前编辑单元格信息
+      selectedCell: { row: -1, column: -1, isNumber: false } // 当前选中单元格信息
     };
   },
   mounted() {
@@ -261,7 +264,17 @@ export default {
           id: 'sheetEditEndedDisposable',
           eventType: this.univerAPIInstance.Event.SheetEditEnded,
           handler: this.handleSheetEditEnded
-        }
+        },
+        {
+          id: 'sheetDataValidatorStatusChangedDisposable',
+          eventType: this.univerAPIInstance.Event.SheetDataValidatorStatusChanged,
+          handler: this.handleSheetDataValidatorStatusChanged
+        },
+        {
+          id: 'sheetEditChangingDisposable',
+          eventType: this.univerAPIInstance.Event.SheetEditChanging,
+          handler: this.handleSheetEditChanging
+        },
       ];
 
       // 批量注册事件
@@ -284,29 +297,70 @@ export default {
 
       // 滚轮事件处理函数
       const handleWheel = (event) => {
-        const { enabled } = this.config.wheelNumberControl;
-        // 仅在配置启用且编辑数字单元格时处理
-        if (!enabled || !this.isEditing || !this.editingCell.isNumber) return;
+        const { mode } = this.config.wheelNumberControl;
+        
+        let targetCell = null;
+        let currentValue = null;
+        
+        // 优先检查编辑态的单元格
+        if (this.isEditing && this.editingCell.row !== -1) {
+          targetCell = this.editingCell;
+          currentValue = targetCell.currentValue;
+        } 
+        // 如果是selected模式且不在编辑态，检查选中的单元格
+        else if (mode === 'selected' && !this.isEditing && this.selectedCell.row !== -1) {
+          targetCell = this.selectedCell;
+          // 获取选中单元格的当前值
+          const worksheet = this.getActiveWorksheet();
+          const cellRange = this.getCellRange(worksheet, targetCell.row, targetCell.column);
+          currentValue = cellRange.getValue();
+        }
+        
+        // 如果没有符合条件的目标单元格，返回
+        if (!targetCell) return;
+        
+        // 检查单元格是否为只读
+        if (this.isCellReadonly(targetCell.row, targetCell.column)) return;
+
+        // 获取当前单元格相关信息
+        const { row: cellRow, column: cellCol } = targetCell;
+        const rowIndex = cellRow - this.headerRowCount;
+        const rowData = this.currentTableData[rowIndex];
+        const column = this.flatColumns[cellCol];
+
+        // 检查单元格是否允许操作
+        const wheelControl = this.config.wheelNumberControl;
+        const isCellAllowed = typeof wheelControl.isCellAllowed === 'function'
+          ? wheelControl.isCellAllowed({ row: rowData, rowIndex, column, cellCol })
+          : wheelControl.isCellAllowed;
+
+        if (!isCellAllowed) return;
+        
+        // 实时判断当前值是否为数字
+        const parsedValue = this.parseCellValue(currentValue);
+        if (typeof parsedValue !== 'number' || isNaN(parsedValue)) return;
 
         event.preventDefault();
         this.withPendingUpdate(async () => {
           try {
             const worksheet = this.getActiveWorksheet();
-            const { row, column } = this.editingCell;
+            const { row, column } = targetCell;
             const cellRange = this.getCellRange(worksheet, row, column);
-
-            // 解析单元格值（处理字符串转数字）
-            let currentValue = this.parseCellValue(cellRange.getValue());
-            if (typeof currentValue !== 'number' || isNaN(currentValue)) return;
 
             // 计算新值（根据滚轮方向和Shift键调整步长）
             const delta = event.deltaY > 0 ? -1 : 1;
             const { step, shiftStep } = this.config.wheelNumberControl;
             const actualStep = event.shiftKey ? shiftStep : step;
-            const newValue = currentValue + delta * actualStep;
+            const newValue = parsedValue + delta * actualStep;
 
             // 更新单元格值并触发变化事件
             cellRange.setValue(newValue);
+            
+            // 如果当前正在编辑，同时更新editingCell中的值
+            if (this.isEditing && this.editingCell.row === row && this.editingCell.column === column) {
+              this.editingCell.currentValue = newValue;
+            }
+            
             this.handleSheetValueChanged({
               effectedRanges: [cellRange]
             });
@@ -416,10 +470,23 @@ export default {
      * 处理单元格点击事件
      */
     handleCellClicked(params) {
-      const { row, column, value } = params;
+      const { row, column } = params;
       // 过滤表头区域
-      if (row < this.headerRowCount) return;
+      if (row < this.headerRowCount) {
+        this.selectedCell = { row: -1, column: -1, isNumber: false };
+        return;
+      }
 
+      const worksheet = this.getActiveWorksheet();
+      const value = this.getCellValue(worksheet, row, column);
+
+      // 保存选中单元格信息
+      this.selectedCell = {
+        row,
+        column,
+        isNumber: typeof value === 'number' || 
+          (typeof value === 'string' && value.trim() !== '' && !isNaN(Number(value)))
+      };
       const rowDataIndex = row - this.headerRowCount;
       const clickedRow = this.currentTableData[rowDataIndex];
       if (!clickedRow) return;
@@ -435,6 +502,21 @@ export default {
     },
 
     /**
+     * 处理单元格编辑中事件
+     */
+    handleSheetEditChanging(params) {
+      const { row, column } = params;
+      const value = params.value.toPlainText()
+      
+      // 如果当前正在编辑的单元格和事件中的单元格一致，则更新当前值
+      if (this.isEditing && 
+          this.editingCell.row === row && 
+          this.editingCell.column === column) {
+        this.editingCell.currentValue = value;
+      }
+    },
+
+    /**
      * 处理单元格编辑开始
      */
     handleSheetEditStarted(params) {
@@ -442,13 +524,12 @@ export default {
       const cellRange = this.getCellRange(this.getActiveWorksheet(), row, column);
       const cellValue = cellRange.getValue();
 
-      // 标记编辑状态和单元格类型（是否为数字）
+      // 标记编辑状态和单元格信息
       this.isEditing = true;
       this.editingCell = {
         row,
         column,
-        isNumber: typeof cellValue === 'number' || 
-          (typeof cellValue === 'string' && cellValue.trim() !== '' && !isNaN(Number(cellValue)))
+        currentValue: cellValue
       };
     },
 
@@ -457,7 +538,7 @@ export default {
      */
     handleSheetEditEnded() {
       this.isEditing = false;
-      this.editingCell = { row: -1, column: -1, isNumber: false };
+      this.editingCell = { row: -1, column: -1, currentValue: null };
     },
 
     /**
@@ -499,6 +580,28 @@ export default {
         params.cancel = true;
         this.$message?.error(this.config.messages.copyHeaderError);
       }
+    },
+
+    /**
+     * 处理数据验证状态变化
+     */
+    handleSheetDataValidatorStatusChanged(params) {
+      const { worksheet, row, column } = params;
+      const isUpdating = this.updatingCells.some(cell => 
+        cell.row === row && cell.column === column
+      );
+
+      if (isUpdating) {
+        this.updatingCells = this.updatingCells.filter(cell => 
+          !(cell.row === row && cell.column === column)
+        );
+        return;
+      }
+      
+      this.updatingCells.push({ row, column });
+      const range = worksheet.getRange(row, column, 1, 1);
+      range.setFontSize(this.config.commonStyle.fontSize);
+      range.setVerticalAlignment('middle');
     },
 
     // ========================== 命令处理子方法 ==========================
@@ -1175,14 +1278,19 @@ export default {
       // 基于列数计算行分批大小（自适应）
       const rowBatchSize = Math.max(Math.floor((1 / this.totalColumns) * this.config.batchSize), 1);
 
+      this.hasActiveRangeBeenSet = false;
+
       // 分批处理数据行
       await this.batchProcess(0, totalRows, rowBatchSize, async (startIdx, endIdx) => {
         for (let rowDataIdx = startIdx; rowDataIdx < endIdx; rowDataIdx++) {
           const actualRowIdx = this.headerRowCount + rowDataIdx;
           const flattenedData = this.flattenRowData(this.currentTableData[rowDataIdx], this.currentTableColumns);
-          // 填充当前行所有单元格
-          flattenedData.forEach((value, colIdx) => {
-            this.setCellValue(worksheet, actualRowIdx, colIdx, value);
+          flattenedData.forEach((value, colIndex) => {
+            this.setCellValue(worksheet, actualRowIdx, colIndex, value);
+            if (!this.hasActiveRangeBeenSet && !this.isCellReadonly(actualRowIdx, colIndex)) {
+              worksheet.getRange(actualRowIdx, colIndex, 1, 1).activate();
+              this.hasActiveRangeBeenSet = true;
+            }
           });
         }
       });
@@ -1530,9 +1638,16 @@ export default {
     /**
      * 结束当前编辑状态
      */
-    endEditing() {
+    async endEditing() {
       if (this.univerAPIInstance && this.isTableInitialized) {
-        return this.getActiveWorkbook().endEditingAsync(true);
+        if (this.isEditing) {
+          try {
+            await this.univerAPIInstance.getActiveWorkbook().endEditingAsync(true);
+          } catch (error) {
+            this.handleError('结束编辑失败', error);
+          }
+        }
+        return
       }
     },
 

@@ -96,6 +96,7 @@ export default {
         emptyDataText: '暂无数据',
         batchSize: 500,
         zoom: 1,
+        scrollBehavior: 'stop-at-boundary',
         styleOptions: {
           width: '100%',
           height: '500px'

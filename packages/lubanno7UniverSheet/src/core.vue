@@ -130,7 +130,9 @@ export default {
       hasActiveRangeBeenSet: false, // 是否已设置激活范围
       updatingCells: [], // 正在更新的单元格数组
       editingCell: { row: -1, column: -1, currentValue: null }, // 当前编辑单元格信息
-      selectedCell: { row: -1, column: -1, isNumber: false } // 当前选中单元格信息
+      selectedCell: { row: -1, column: -1, isNumber: false }, // 当前选中单元格信息
+      viewportScrollY: 0, // 当前视口滚动Y值
+      isScrolling: false // 表格是否正在滚动
     };
   },
   mounted() {
@@ -275,6 +277,11 @@ export default {
           eventType: this.univerAPIInstance.Event.SheetEditChanging,
           handler: this.handleSheetEditChanging
         },
+        {
+          id: 'scrollDisposable',
+          eventType: this.univerAPIInstance.Event.Scroll,
+          handler: this.handleScroll
+        }
       ];
 
       // 批量注册事件
@@ -289,14 +296,14 @@ export default {
     },
 
     /**
-     * 添加鼠标滚轮事件监听（数字单元格编辑时调整值）
+     * 添加鼠标滚轮事件监听
      */
     addWheelEventListener() {
       const sheetContainer = this.$refs.sheetContainer;
       if (!sheetContainer) return;
 
-      // 滚轮事件处理函数
-      const handleWheel = (event) => {
+      // 捕获阶段的滚轮事件处理函数
+      const handleWheelCapture = (event) => {
         const { mode } = this.config.wheelNumberControl;
         
         let targetCell = null;
@@ -341,6 +348,8 @@ export default {
         if (typeof parsedValue !== 'number' || isNaN(parsedValue)) return;
 
         event.preventDefault();
+        event.stopPropagation();
+        
         this.withPendingUpdate(async () => {
           try {
             const worksheet = this.getActiveWorksheet();
@@ -370,10 +379,31 @@ export default {
         });
       };
 
+      // 冒泡阶段的滚轮事件处理函数
+      const handleWheelBubble = (event) => {
+        const scrollBehavior = this.config.scrollBehavior;
+        
+        if (scrollBehavior === 'prevent-always') {
+          // 无论表格是否滚动始终阻止默认行为
+          event.preventDefault();
+          event.stopPropagation();
+        } else if (scrollBehavior === 'stop-at-boundary') {
+          // 当表格滚动时阻止外层滚动
+          if (this.isScrolling) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }
+      };
+
       // 绑定事件并注册销毁
-      sheetContainer.addEventListener('wheel', handleWheel);
+      sheetContainer.addEventListener('wheel', handleWheelCapture, true);
+      sheetContainer.addEventListener('wheel', handleWheelBubble);
       this.disposableManager.add('wheelEventListenerDisposable', {
-        dispose: () => sheetContainer.removeEventListener('wheel', handleWheel)
+        dispose: () => {
+          sheetContainer.removeEventListener('wheel', handleWheelCapture, true);
+          sheetContainer.removeEventListener('wheel', handleWheelBubble);
+        }
       });
     },
 
@@ -602,6 +632,18 @@ export default {
       const range = worksheet.getRange(row, column, 1, 1);
       range.setFontSize(this.config.commonStyle.fontSize);
       range.setVerticalAlignment('middle');
+    },
+
+    /** 处理滚动事件 */
+    handleScroll(params) {
+      // 保存当前滚动Y值
+      const newScrollY = params.viewportScrollY || 0;
+      
+      // 判断是否正在滚动：新滚动值与旧值不同时视为正在滚动；若相同（可能已滚动至顶部或底部），则视为未在滚动
+      this.isScrolling = newScrollY !== this.viewportScrollY;
+      
+      // 更新滚动Y值
+      this.viewportScrollY = newScrollY;
     },
 
     // ========================== 命令处理子方法 ==========================
@@ -1329,7 +1371,10 @@ export default {
      * 设置单元格值
      */
     setCellValue(worksheet, row, col, value) {
-      if (typeof value !== 'object' || value === null) {
+      if (value === undefined || value === null) { 
+        return
+      }
+      if (typeof value !== 'object') {
         this.getCellRange(worksheet, row, col).setValue(value);
       } else {
         this.getCellRange(worksheet, row, col).setValue(JSON.stringify(value));

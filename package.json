@@ -1,6 +1,6 @@
 {
   "name": "lubanno7-univer-sheet",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "基于Univer表格与Element UI设计风格的Vue表格组件，支持嵌套表头、单元格编辑、数据双向绑定",
   "keywords": [
     "vue",
@@ -15,7 +15,7 @@
     "type": "git",
     "url": "https://github.com/lubanqihao9875/lubanno7-univer-sheet"
   },
-  "homepage": "https://github.com/lubanqihao9875/lubanno7-univer-sheet#readme",
+  "homepage": "https://lubanqihao9875.github.io/lubanno7-univer-sheet-docs/",
   "main": "lib/index.umd.js",
   "files": [
     "lib",

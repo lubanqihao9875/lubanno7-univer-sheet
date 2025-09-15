@@ -79,7 +79,7 @@
                 <div class="step-number">1</div>
                 <div class="step-content">
                   <h4>安装组件</h4>
-                  <code>npm install lubanno7-univer-sheet --save</code>
+                  <code>npm install lubanno7-univer-sheet</code>
                 </div>
               </div>
               
@@ -136,7 +136,7 @@ Vue.use(Lubanno7UniverSheet)
           <el-timeline>
             <el-timeline-item>修改组件源码文件</el-timeline-item>
             <el-timeline-item>运行 <code>npm run dev</code> 启动开发服务器</el-timeline-item>
-            <el-timeline-item>确认功能正常后，运行 <code>npm run build:lib</code> 重新构建组件库</el-timeline-item>
+            <el-timeline-item>确认功能正常后运行 <code>npm run build:lib</code> 重新构建组件库</el-timeline-item>
           </el-timeline>
         </div>
       </div>

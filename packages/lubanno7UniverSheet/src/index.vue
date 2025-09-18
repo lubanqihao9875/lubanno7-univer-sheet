@@ -82,7 +82,7 @@ export default {
       exposed: this.createInitialExposed(),
       // 默认配置集中管理
       defaultConfig: {
-        sheetName: 'Sheet',
+        locale: 'zh-CN',
         allowInsertRow: true,
         allowDeleteRow: true,
         autoRefreshOnPropChange: false,
@@ -94,7 +94,16 @@ export default {
         selectValidationErrorInfo: '无效只是警告，该输入不在下拉列表中，但实际可以输入',
         selectValidationErrorStop: '请从下拉列表中选择一个值',
         emptyDataText: '暂无数据',
-        batchSize: 500,
+        asyncOptions: {
+          isAsyncEnabled: false,
+          baseBatchSize: 500,
+          loadHeaderBatchRatio: 1,
+          mergeHeaderBatchRatio: 1,
+          setColWidthBatchRatio: 1,
+          loadDataBatchRatio: 1,
+          updateReadonlyCellStylesBatchRatio: 1,
+          setSelectCellDataValidationBatchRatio: 1
+        },
         zoom: 1,
         scrollBehavior: 'stop-at-boundary',
         styleOptions: {
@@ -151,18 +160,10 @@ export default {
           defaultConfig: this.defaultConfig
         },
         methods: {
-          refreshTableData: this.refreshTableData,
           recreateTable: this.recreateTable,
           refreshTableCommonConfig: this.refreshTableCommonConfig
         }
       };
-    },
-
-    // 表格操作方法
-    refreshTableData() {
-      if (this.isTableInitialized && this.$refs.lubanno7UniverSheetCoreRef) {
-        this.$refs.lubanno7UniverSheetCoreRef.refreshTableData();
-      }
     },
     
     recreateTable() {
@@ -173,8 +174,8 @@ export default {
     },
     
     refreshTableCommonConfig() {
-      if (this.isTableInitialized && this.$refs.lubanno7UniverSheetCoreRef) {
-        this.$refs.lubanno7UniverSheetCoreRef.setCommonSheetConfig();
+      if (this.isTableInitialized && this.$refs.universheetCoreRef) {
+        this.$refs.universheetCoreRef.setCommonSheetConfig();
       }
     },
 
@@ -186,7 +187,7 @@ export default {
     
     // 表格初始化完成处理（特殊处理，需要更新exposed）
     handleTableInitialized() {
-      const coreRef = this.$refs.lubanno7UniverSheetCoreRef;
+      const coreRef = this.$refs.universheetCoreRef;
       
       // 更新exposed对象，添加核心实例和方法
       this.exposed = {
@@ -222,7 +223,16 @@ export default {
       },
       deep: true,
       immediate: false
-    }
+    },
+    // 监听数据变化
+    data: {
+      handler: function() {
+        if (!this.mergedConfig.autoRefreshOnPropChange) return;
+        this.recreateTable();
+      },
+      deep: true,
+      immediate: false
+    },
   }
 };
 </script>

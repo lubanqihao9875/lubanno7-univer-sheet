@@ -44,7 +44,7 @@ export default {
         { name: '李四', age: 30, address: '上海市' }
       ],
       config: {
-        sheetName: '示例表',
+        locale: 'zh-CN',
         allowInsertRow: true,
         allowDeleteRow: true
       }

@@ -11,7 +11,7 @@
     @deleteRow="(params) => emitEvent('deleteRow', params)"
     @rowInserted="(params) => emitEvent('rowInserted', params)"
     @rowUpdated="(params) => emitEvent('rowUpdated', params)"
-    @cellClicked="(params) => emitEvent('cellClicked', params)"
+    @cellClick="(params) => emitEvent('cellClick', params)"
     @forbiddenAction="(params) => emitEvent('forbiddenAction', params)"
   />
 </template>
@@ -189,12 +189,18 @@ export default {
         methods: {
           ...this.exposed.methods,
           getCurrentTableData: coreRef.getCurrentTableData,
+          getRowByIndex: coreRef.getRowByIndex,
           endEditing: coreRef.endEditing,
           setCellFontColor: coreRef.setCellFontColor,
           getColumnName: coreRef.getColumnName,
           getColumnIndex: coreRef.getColumnIndex,
+          insertRowBefore: coreRef.insertRowBefore,
+          insertRowAfter: coreRef.insertRowAfter,
           insertRowToEnd: coreRef.insertRowToEnd,
-          updateRowData: coreRef.updateRowData,
+          updateRow: coreRef.updateRow,
+          deleteRow: coreRef.deleteRow,
+          getRowByFilter: coreRef.getRowByFilter,
+          getRowByFilterAll: coreRef.getRowByFilterAll,
           getRowIndexByFilter: coreRef.getRowIndexByFilter,
           getRowIndexByFilterAll: coreRef.getRowIndexByFilterAll,
         }

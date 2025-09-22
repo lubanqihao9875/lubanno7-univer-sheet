@@ -290,6 +290,11 @@ export default {
           handler: this.handleBeforeClipboardChange
         },
         {
+          id: 'beforeClipboardPasteDisposable',
+          eventType: this.univerAPIInstance.Event.BeforeClipboardPaste,
+          handler: this.handleBeforeClipboardPaste
+        },
+        {
           id: 'cellClickedDisposable',
           eventType: this.univerAPIInstance.Event.CellClicked,
           handler: this.handleCellClicked
@@ -580,7 +585,7 @@ export default {
       if (!clickedRow) return;
 
       // 触发外部点击事件
-      this.$emit('cellClicked', {
+      this.$emit('cellClick', {
         clickedRow: { ...clickedRow },
         clickedRowIndex: rowDataIndex,
         clickedColumn: this.getColumnName(column),
@@ -656,6 +661,8 @@ export default {
         case 'sheet.command.move-range':
           this.handleMoveRangeCommand(params, event);
           break;
+        case 'sheet.command.clear-selection-content':
+          this.handleClearSelectionContentCommand(event);
       }
     },
 
@@ -667,6 +674,24 @@ export default {
       if (startRow < this.headerRowCount) {
         params.cancel = true;
         this.$emit('forbiddenAction', { type: 'copyHeaderForbidden' });
+      }
+    },
+
+    /**
+     * 处理剪贴板粘贴前事件（禁止粘贴表头和只读单元格）
+     */
+    handleBeforeClipboardPaste(params) {
+      const { row, column } = this.selectedCell
+
+      if (row === -1 || column === -1) {
+        params.cancel = true;
+        this.$emit('forbiddenAction', { type: 'pasteHeaderForbidden' });
+        return;
+      }
+
+      if (this.isCellReadonly(row, column)) {
+        params.cancel = true;
+        this.$emit('forbiddenAction', { type: 'pasteReadonlyCellForbidden' });
       }
     },
 
@@ -795,6 +820,22 @@ export default {
       if (this.hasReadOnlyCellInRange(fromRange) || this.hasReadOnlyCellInRange(toRange)) {
         event.cancel = true;
         this.$emit('forbiddenAction', { type: 'moveReadOnlyCellForbidden' });
+      }
+    },
+
+    /** 处理清除选中区域内容命令 (禁止清除表头内容、只读单元格内容) */
+    handleClearSelectionContentCommand(event) {
+      const { row, column } = this.selectedCell
+
+      if (row === -1 || column === -1) {
+        event.cancel = true;
+        this.$emit('forbiddenAction', { type: 'clearHeaderContentForbidden' });
+        return;
+      }
+
+      if (this.isCellReadonly(row, column)) {
+        event.cancel = true;
+        this.$emit('forbiddenAction', { type: 'clearReadonlyCellContentForbidden' });
       }
     },
 
@@ -1116,41 +1157,68 @@ export default {
     },
 
     /**
+     * 在指定索引前插入行
+     */
+    insertRowBefore(index, rowData) {
+      this.syncCurrentTableData();
+      this.insertRow(index - 1, rowData);
+    },
+
+    /**
+     * 在指定索引后插入行
+     */
+    insertRowAfter(index, rowData) {
+      this.syncCurrentTableData();
+      this.insertRow(index, rowData);
+    },
+
+    /**
      * 向表尾插入行
      */
     insertRowToEnd(row) {
+      this.syncCurrentTableData();
+      this.insertRow(this.currentTableData.length - 1, row);
+    },
+
+    /**
+     * 行插入方法
+     */
+    insertRow(index, rowData) {
       this.withPendingUpdate(() => {
         // 参数校验
-        if (!row || typeof row !== 'object') {
+        if (index < -1 || index >= this.currentTableData.length) {
+          this.handleError(`插入行失败：索引${index}超出范围`);
+          return;
+        }
+        if (!rowData || typeof rowData !== 'object') {
           this.handleError('插入行失败：行数据必须是对象');
           return;
         }
 
         const worksheet = this.getActiveWorksheet();
-        this.syncCurrentTableData();
 
         // 计算插入位置
-        const lastDataRow = this.headerRowCount + this.currentTableData.length - 1;
-        const insertRowIdx = lastDataRow + 1;
+        const insertIndex = index + 1;
+        const insertRowIdx = this.headerRowCount + insertIndex;
 
         // 插入行并填充数据
-        worksheet.insertRowAfter(lastDataRow);
-        worksheet.setRowCount(insertRowIdx + 1);
-        const flattenedRow = this.flattenRowData(row, this.currentTableColumns);
+        worksheet.insertRowAfter(insertRowIdx - 1);
+        worksheet.setRowCount(this.headerRowCount + this.currentTableData.length + 1);
+        const flattenedRow = this.flattenRowData(rowData, this.currentTableColumns);
         flattenedRow.forEach((value, colIndex) => {
           this.setCellValue(worksheet, insertRowIdx, colIndex, value);
         });
 
-        // 应用编辑器配置（下拉选择等）
-        this.applyRowEditor(worksheet, this.currentTableData.length, row);
+        // 应用编辑器配置
+        this.applyRowEditor(worksheet, insertIndex, rowData);
 
         // 同步内部数据并触发事件
-        const newRow = { ...row };
-        this.currentTableData.push(newRow);
+        const newRow = { ...rowData };
+        this.currentTableData.splice(insertIndex, 0, newRow);
         this.$emit('rowInserted', {
           insertedRows: [newRow],
-          insertedRowStartIndex: this.currentTableData.length - 1,
-          insertedRowEndIndex: this.currentTableData.length - 1,
+          insertedRowStartIndex: insertIndex,
+          insertedRowEndIndex: insertIndex,
           currentTableData: [...this.currentTableData]
         });
       });
@@ -1159,7 +1227,7 @@ export default {
     /**
      * 更新指定索引行数据
      */
-    updateRowData(index, rowData, mergeWithExisting = true) {
+    updateRow(index, rowData, mergeWithExisting = true) {
       this.withPendingUpdate(() => {
         // 参数校验
         if (index < 0 || index >= this.currentTableData.length) {
@@ -1198,6 +1266,133 @@ export default {
           currentTableData: [...this.currentTableData]
         });
       });
+    },
+
+    /**
+     * 删除指定索引的行
+     */
+    deleteRow(index) {
+      this.withPendingUpdate(() => {
+        // 参数校验
+        if (index < 0 || index >= this.currentTableData.length) {
+          this.handleError(`删除行失败：索引${index}超出范围`);
+          return;
+        }
+
+        const worksheet = this.getActiveWorksheet();
+        this.syncCurrentTableData();
+
+        // 计算实际行索引
+        const actualRowIdx = this.headerRowCount + index;
+
+        // 删除工作表中的行
+        worksheet.deleteRow(actualRowIdx);
+
+        // 同步内部数据并触发事件
+        const deletedRow = this.currentTableData.splice(index, 1)[0];
+        this.$emit('deleteRow', {
+          deleteRows: [deletedRow],
+          deleteRowStartIndex: index,
+          deleteRowEndIndex: index,
+          currentTableData: [...this.currentTableData]
+        });
+      });
+    },
+
+    /**
+     * 根据索引获取某一行数据
+     * 先同步最新数据再返回结果
+     * @param {number} index - 行索引
+     * @returns {object|null} - 行数据对象，如果索引无效则返回null
+     */
+    getRowByIndex(index) {
+      // 同步最新数据
+      this.syncCurrentTableData();
+      
+      // 参数校验
+      if (index < 0 || index >= this.currentTableData.length) {
+        console.warn(`获取行数据失败：索引${index}超出范围`);
+        return null;
+      }
+      
+      // 返回行数据的深拷贝，避免外部直接修改内部数据
+      return JSON.parse(JSON.stringify(this.currentTableData[index]));
+    },
+
+    /**
+     * 根据筛选条件获取符合条件的第一行数据
+     * @param {object} filter - 筛选条件对象
+     * @returns {object|null} - 符合条件的第一行数据，如果没有符合条件的行则返回null
+     */
+    getRowByFilter(filter) {
+      // 同步最新数据
+      this.syncCurrentTableData();
+      
+      // 参数校验
+      if (!filter || typeof filter !== 'object') {
+        console.warn('筛选条件必须是非空对象');
+        return null;
+      }
+      
+      // 遍历所有行数据，查找符合筛选条件的第一行
+      for (const row of this.currentTableData) {
+        if (this.isRowMatchFilter(row, filter)) {
+          // 返回匹配行数据的深拷贝
+          return JSON.parse(JSON.stringify(row));
+        }
+      }
+      
+      // 没有找到符合条件的行
+      return null;
+    },
+
+    /**
+     * 根据筛选条件获取所有符合条件的行数据
+     * @param {object} filter - 筛选条件对象
+     * @returns {array} - 符合条件的行数据数组
+     */
+    getRowByFilterAll(filter) {
+      // 同步最新数据
+      this.syncCurrentTableData();
+      
+      // 参数校验
+      if (!filter || typeof filter !== 'object') {
+        console.warn('筛选条件必须是非空对象');
+        return [];
+      }
+      
+      const matchedRows = [];
+      
+      // 遍历所有行数据，查找符合筛选条件的所有行
+      for (const row of this.currentTableData) {
+        if (this.isRowMatchFilter(row, filter)) {
+          // 添加匹配行数据的深拷贝
+          matchedRows.push(JSON.parse(JSON.stringify(row)));
+        }
+      }
+      
+      return matchedRows;
+    },
+
+    /**
+     * 根据过滤条件获取行索引（单个匹配）
+     */
+    getRowIndexByFilter(filterObj) {
+      this.syncCurrentTableData();
+      return this.currentTableData.findIndex(item => this.isRowMatchFilter(item, filterObj));
+    },
+
+    /**
+     * 根据过滤条件获取行索引（所有匹配）
+     */
+    getRowIndexByFilterAll(filterObj) {
+      this.syncCurrentTableData();
+      return this.currentTableData.reduce((indices, item, index) => {
+        if (this.isRowMatchFilter(item, filterObj)) {
+          indices.push(index);
+        }
+        return indices;
+      }, []);
     },
 
     // ========================== 样式与权限相关方法 ==========================
@@ -1971,29 +2166,30 @@ export default {
     },
 
     /**
-     * 根据过滤条件获取行索引（单个匹配）
+     * 辅助方法：检查行数据是否符合筛选条件
+     * @param {object} row - 行数据对象
+     * @param {object} filter - 筛选条件对象
+     * @returns {boolean} - 是否符合筛选条件
      */
-    getRowIndexByFilter(filterObj) {
-      return this.currentTableData.findIndex(item => {
-        return Object.keys(filterObj).every(key => item[key] === filterObj[key]);
-      });
-    },
-
-    /**
-     * 根据过滤条件获取行索引（所有匹配）
-     */
-    getRowIndexByFilterAll(filterObj) {
-      return this.currentTableData.reduce((indices, item, index) => {
-        const isMatch = Object.keys(filterObj).every(key => {
-          // 处理undefined/null的相等性
-          if (item[key] === undefined || item[key] === null) {
-            return filterObj[key] === undefined || filterObj[key] === null;
+    isRowMatchFilter(row, filter) {
+      for (const [key, value] of Object.entries(filter)) {
+        // 处理嵌套属性路径
+        const keys = key.split('.');
+        let currentValue = row;
+        
+        for (const k of keys) {
+          if (currentValue === undefined || currentValue === null || !(k in currentValue)) {
+            return false;
           }
-          return item[key] === filterObj[key];
-        });
-        if (isMatch) indices.push(index);
-        return indices;
-      }, []);
+          currentValue = currentValue[k];
+        }
+        
+        if (currentValue !== value) {
+          return false;
+        }
+      }
+      
+      return true;
     },
 
     /**

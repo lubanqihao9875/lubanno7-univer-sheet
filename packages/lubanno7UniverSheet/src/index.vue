@@ -7,12 +7,12 @@
     :config="mergedConfig"
     @updateData="(params) => emitEvent('updateData', params)"
     @tableInitialized="handleTableInitialized"
-    @tableDataRefreshed="(params) => emitEvent('tableDataRefreshed', params)"
     @insertRow="(params) => emitEvent('insertRow', params)"
     @deleteRow="(params) => emitEvent('deleteRow', params)"
     @rowInserted="(params) => emitEvent('rowInserted', params)"
     @rowUpdated="(params) => emitEvent('rowUpdated', params)"
     @cellClicked="(params) => emitEvent('cellClicked', params)"
+    @forbiddenAction="(params) => emitEvent('forbiddenAction', params)"
   />
 </template>
 
@@ -135,19 +135,6 @@ export default {
         selectCellStyle: {
           backgroundColor: '#fff',
           fontWeight: 'normal'
-        },
-        messages: {
-          insertRowError: '表头区域不可插入行',
-          deleteRowError: '表头行不可删除',
-          autoFillFromHeaderError: '不可从表头行开始自动填充',
-          autoFillToHeaderError: '不可填充至表头行',
-          mergeCellError: '不支持合并单元格',
-          unmergeCellError: '不支持取消单元格合并',
-          moveHeaderError: '表头行不可移动',
-          moveToHeaderError: '不可移动内容至表头区域',
-          copyHeaderError: '表头行不可复制',
-          readonlyCellAutoFillError: '区域包含只读单元格无法自动填充',
-          readonlyCellMoveError: '区域包含只读单元格无法移动数据'
         }
       }
     }
@@ -181,8 +168,11 @@ export default {
 
     // 事件处理与转发
     emitEvent(eventName, params) {
-      const emitData = params ? { ...params, exposed: this.exposed } : this.exposed;
-      this.$emit(eventName, emitData);
+      if (params) {
+        this.$emit(eventName, params);
+      } else {
+        this.$emit(eventName);
+      }
     },
     
     // 表格初始化完成处理（特殊处理，需要更新exposed）
@@ -211,7 +201,7 @@ export default {
       };
       
       this.isTableInitialized = true;
-      this.emitEvent('tableInitialized');
+      this.emitEvent('tableInitialized', { exposed: this.exposed });
     }
   },
   watch: {

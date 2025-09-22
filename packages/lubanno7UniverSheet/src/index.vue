@@ -135,19 +135,6 @@ export default {
         selectCellStyle: {
           backgroundColor: '#fff',
           fontWeight: 'normal'
-        },
-        messages: {
-          insertRowError: '表头区域不可插入行',
-          deleteRowError: '表头行不可删除',
-          autoFillFromHeaderError: '不可从表头行开始自动填充',
-          autoFillToHeaderError: '不可填充至表头行',
-          mergeCellError: '不支持合并单元格',
-          unmergeCellError: '不支持取消单元格合并',
-          moveHeaderError: '表头行不可移动',
-          moveToHeaderError: '不可移动内容至表头区域',
-          copyHeaderError: '表头行不可复制',
-          readonlyCellAutoFillError: '区域包含只读单元格无法自动填充',
-          readonlyCellMoveError: '区域包含只读单元格无法移动数据'
         }
       }
     }

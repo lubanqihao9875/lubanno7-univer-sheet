@@ -7,12 +7,12 @@
     :config="mergedConfig"
     @updateData="(params) => emitEvent('updateData', params)"
     @tableInitialized="handleTableInitialized"
-    @tableDataRefreshed="(params) => emitEvent('tableDataRefreshed', params)"
     @insertRow="(params) => emitEvent('insertRow', params)"
     @deleteRow="(params) => emitEvent('deleteRow', params)"
     @rowInserted="(params) => emitEvent('rowInserted', params)"
     @rowUpdated="(params) => emitEvent('rowUpdated', params)"
     @cellClicked="(params) => emitEvent('cellClicked', params)"
+    @forbiddenAction="(params) => emitEvent('forbiddenAction', params)"
   />
 </template>
 
@@ -181,8 +181,11 @@ export default {
 
     // 事件处理与转发
     emitEvent(eventName, params) {
-      const emitData = params ? { ...params, exposed: this.exposed } : this.exposed;
-      this.$emit(eventName, emitData);
+      if (params) {
+        this.$emit(eventName, params);
+      } else {
+        this.$emit(eventName);
+      }
     },
     
     // 表格初始化完成处理（特殊处理，需要更新exposed）
@@ -211,7 +214,7 @@ export default {
       };
       
       this.isTableInitialized = true;
-      this.emitEvent('tableInitialized');
+      this.emitEvent('tableInitialized', { exposed: this.exposed });
     }
   },
   watch: {

@@ -25,10 +25,8 @@ import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-v
 import UniverPresetSheetsDataValidationZhCN from '@univerjs/preset-sheets-data-validation/locales/zh-CN'
 import UniverPresetSheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-import { Message } from 'element-ui'
 import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-data-validation/lib/index.css'
-import 'element-ui/lib/theme-chalk/index.css'
 
 /**
  * 可销毁资源管理器
@@ -668,7 +666,7 @@ export default {
       const { startRow } = params.fromRange._range;
       if (startRow < this.headerRowCount) {
         params.cancel = true;
-        Message.error(this.config.messages.copyHeaderError);
+        this.$emit('forbiddenAction', { type: 'copyHeaderForbidden' });
       }
     },
 
@@ -711,7 +709,7 @@ export default {
     handleInsertRowCommand(params, event) {
       if (params.range.startRow < this.headerRowCount) {
         event.cancel = true;
-        Message.error(this.config.messages.insertRowError);
+        this.$emit('forbiddenAction', { type: 'insertRowInHeaderForbidden' });
       }
     },
 
@@ -719,7 +717,7 @@ export default {
     handleRemoveRowCommand(params, event) {
       if (params.range.startRow < this.headerRowCount) {
         event.cancel = true;
-        Message.error(this.config.messages.deleteRowError);
+        this.$emit('forbiddenAction', { type: 'deleteRowInHeaderForbidden' });
       }
     },
 
@@ -730,21 +728,22 @@ export default {
       // 禁止从表头开始填充
       if (sourceRange.startRow < this.headerRowCount) {
         event.cancel = true;
-        Message.error(this.config.messages.autoFillFromHeaderError);
+        this.$emit('forbiddenAction', { type: 'autoFillFromHeaderForbidden' });
         return;
       }
 
       // 禁止填充到表头
       if (targetRange.startRow < this.headerRowCount) {
         event.cancel = true;
-        Message.error(this.config.messages.autoFillToHeaderError);
+        this.$emit('forbiddenAction', { type: 'autoFillToHeaderForbidden' });
         return;
       }
 
       // 禁止包含只读单元格的填充
       if (this.hasReadOnlyCellInRange(sourceRange) || this.hasReadOnlyCellInRange(targetRange)) {
         event.cancel = true;
-        Message.error(this.config.messages.readonlyCellAutoFillError);
+        this.$emit('forbiddenAction', { type: 'autoFillReadOnlyCellForbidden' });
+        return;
       }
     },
 
@@ -766,10 +765,11 @@ export default {
     handleMergeCellCommand(id, event) {
       if (this.isTableInitialized) {
         event.cancel = true;
-        const message = id === 'sheet.command.add-worksheet-merge'
-          ? this.config.messages.mergeCellError
-          : this.config.messages.unmergeCellError;
-        Message.error(message);
+        this.$emit('forbiddenAction', { 
+          type: id === 'sheet.command.add-worksheet-merge'
+            ? 'mergeCellForbidden'
+            : 'unmergeCellForbidden' 
+        });
       }
     },
 
@@ -780,21 +780,21 @@ export default {
       // 禁止移动表头行
       if (fromRange.startRow < this.headerRowCount) {
         event.cancel = true;
-        Message.error(this.config.messages.moveHeaderError);
+        this.$emit('forbiddenAction', { type: 'moveFromHeaderForbidden' });
         return;
       }
 
       // 禁止移动到表头区域
       if (toRange.startRow < this.headerRowCount) {
         event.cancel = true;
-        Message.error(this.config.messages.moveToHeaderError);
+        this.$emit('forbiddenAction', { type: 'moveToHeaderForbidden' });
         return;
       }
 
       // 禁止包含只读单元格的移动
       if (this.hasReadOnlyCellInRange(fromRange) || this.hasReadOnlyCellInRange(toRange)) {
         event.cancel = true;
-        Message.error(this.config.messages.readonlyCellMoveError);
+        this.$emit('forbiddenAction', { type: 'moveReadOnlyCellForbidden' });
       }
     },
 
@@ -1440,8 +1440,8 @@ export default {
             // 解析select配置
             const { options = [], multiple = false, allowInput = false, selectValidationError } = editorConfig;
             const errorMsg = selectValidationError || (allowInput
-              ? this.config.messages.selectValidationErrorInfo
-              : this.config.messages.selectValidationErrorStop);
+              ? this.config.selectValidationErrorInfo
+              : this.config.selectValidationErrorStop);
             const errorStyle = allowInput
               ? this.univerAPIInstance.Enum.DataValidationErrorStyle.INFO
               : this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP;
@@ -1506,8 +1506,8 @@ export default {
           // 解析select配置
           const { options = [], multiple = false, allowInput = false, selectValidationError } = editorConfig;
           const errorMsg = selectValidationError || (allowInput
-            ? this.config.messages.selectValidationErrorInfo
-            : this.config.messages.selectValidationErrorStop);
+            ? this.config.selectValidationErrorInfo
+            : this.config.selectValidationErrorStop);
           const errorStyle = allowInput
             ? this.univerAPIInstance.Enum.DataValidationErrorStyle.INFO
             : this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP;
@@ -1707,8 +1707,8 @@ export default {
     applySelectEditor(cellRange, editorConfig) {
       const { options = [], multiple = false, allowInput = false, selectValidationError } = editorConfig;
       const errorMsg = selectValidationError || (allowInput
-        ? this.config.messages.selectValidationErrorInfo
-        : this.config.messages.selectValidationErrorStop);
+        ? this.config.selectValidationErrorInfo
+        : this.config.selectValidationErrorStop);
       const errorStyle = allowInput
         ? this.univerAPIInstance.Enum.DataValidationErrorStyle.INFO
         : this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP;

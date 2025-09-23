@@ -4,7 +4,7 @@
     <!-- 加载遮罩 -->
     <div v-if="pendingUpdates !== 0 || !isTableInitialized" class="custom-loading-mask">
       <div class="loading-content">
-        <div class="loading-spinner" :style="{ 'border-top-color': config.loadingMaskColor }"></div>
+        <div class="loading-spinner"></div>
         <div class="loading-text">{{ config.loadingMessage }}</div>
       </div>
     </div>
@@ -2360,6 +2360,7 @@ export default {
   --text-color: #333333;
   --empty-text-color: #666666;
   --loading-spinner-size: 40px;
+  --loading-mask-color: #3498db;
   --loading-text-size: 14px;
   --empty-text-size: 16px;
 }
@@ -2388,6 +2389,7 @@ export default {
   height: var(--loading-spinner-size);
   border: 4px solid #f3f3f3;
   border-radius: 50%;
+  border-top-color: var(--loading-mask-color);
   animation: spin 1s linear infinite;
   margin: 0 auto 10px;
 }

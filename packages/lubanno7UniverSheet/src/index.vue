@@ -86,7 +86,6 @@ export default {
         allowInsertRow: true,
         allowDeleteRow: true,
         autoRefreshOnPropChange: false,
-        loadingMaskColor: '#3498db',
         loadingMessage: '数据加载中...',
         headerOptions: {
           show: true,          // 是否展示整个头部

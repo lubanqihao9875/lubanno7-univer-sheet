@@ -155,6 +155,14 @@ export default {
           color: '#000',
           fontSize: 12,
           fontWeight: 'normal',
+          rowHeader: {
+            width: 50,
+            hidden: false
+          },
+          columnHeader: {
+            height: 20,
+            hidden: false
+          }
         },
         headerStyle: {
           headerRowHeight: 20,
@@ -227,6 +235,7 @@ export default {
           ...this.exposed.methods,
           getCurrentTableData: coreRef.getCurrentTableData,
           getCurrentTableHeaderRowCount: coreRef.getCurrentTableHeaderRowCount,
+          getCurrentTableDataRowCount: coreRef.getCurrentTableDataRowCount,
           getCurrentTableRowCount: coreRef.getCurrentTableRowCount,
           getCurrentTableColumnCount: coreRef.getCurrentTableColumnCount,
           getRowByIndex: coreRef.getRowByIndex,

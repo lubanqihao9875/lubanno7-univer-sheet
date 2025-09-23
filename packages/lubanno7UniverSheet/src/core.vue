@@ -308,7 +308,15 @@ export default {
                 id: this.sheetName,
                 name: this.sheetName,
                 defaultColumnWidth: this.config.commonStyle.defaultColumnWidth,
-                defaultRowHeight: this.config.commonStyle.defaultRowHeight
+                defaultRowHeight: this.config.commonStyle.defaultRowHeight,
+                rowHeader: {
+                  width: this.config.commonStyle.rowHeader.width,
+                  hidden: this.config.commonStyle.rowHeader.hidden ? 1 : 0,
+                },
+                columnHeader: {
+                  height: this.config.commonStyle.columnHeader.height,
+                  hidden: this.config.commonStyle.columnHeader.hidden ? 1 : 0,
+                }
               }
             }
           });
@@ -972,7 +980,15 @@ export default {
         showGridlines: 1,
         mergeData: mergeInfos,
         defaultColumnWidth: this.config.commonStyle.defaultColumnWidth,
-        defaultRowHeight: this.config.commonStyle.defaultRowHeight
+        defaultRowHeight: this.config.commonStyle.defaultRowHeight,
+        rowHeader: {
+          width: this.config.commonStyle.rowHeader.width,
+          hidden: this.config.commonStyle.rowHeader.hidden ? 1 : 0,
+        },
+        columnHeader: {
+          height: this.config.commonStyle.columnHeader.height,
+          hidden: this.config.commonStyle.columnHeader.hidden ? 1 : 0,
+        }
       };
 
       return sheetData;
@@ -2330,6 +2346,14 @@ export default {
      */
     getCurrentTableHeaderRowCount() {
       return this.headerRowCount;
+    },
+
+    /**
+     * 获取当前表格的数据行数
+     */
+    getCurrentTableDataRowCount() {
+      this.syncCurrentTableData();
+      return this.currentTableData.length;
     },
 
     /**

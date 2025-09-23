@@ -88,11 +88,21 @@ export default {
         autoRefreshOnPropChange: false,
         loadingMaskColor: '#3498db',
         loadingMessage: '数据加载中...',
-        showHeader: true,
-        showToolbar: true,
-        showFooter: true,
-        selectValidationErrorInfo: '无效只是警告，该输入不在下拉列表中，但实际可以输入',
-        selectValidationErrorStop: '请从下拉列表中选择一个值',
+        headerOptions: {
+          show: true,          // 是否展示整个头部
+          showToolbar: true,   // 是否展示头部中的工具栏
+          ribbonType: 'default' // 头部功能区类型，可选 'default' 或 'simple'
+        },
+        footerOptions: {
+          show: true,          // 是否展示整个底部
+          showStatisticBar: false, // 是否展示底部的统计信息栏
+          showZoomSlider: true    // 是否展示底部的缩放滑块
+        },
+        showContextMenu: true, // 是否展示右键上下文菜单
+        selectOptions: {
+          selectValidationErrorInfo: '无效只是警告，该输入不在下拉列表中，但实际可以输入',
+          selectValidationErrorStop: '请从下拉列表中选择一个值',
+        },
         emptyDataText: '暂无数据',
         asyncOptions: {
           isAsyncEnabled: false,
@@ -103,6 +113,17 @@ export default {
           loadDataBatchRatio: 1,
           updateReadonlyCellStylesBatchRatio: 1,
           setSelectCellDataValidationBatchRatio: 1
+        },
+        plugins: {
+          filter: {
+            enabled: true
+          },
+          sort: {
+            enabled: true
+          },
+          findReplace: {
+            enabled: true
+          }
         },
         zoom: 1,
         scrollBehavior: 'stop-at-boundary',
@@ -121,19 +142,36 @@ export default {
           defaultColumnWidth: 80,
           backgroundColor: '#fff',
           borderColor: '#ccc',
+          borderType: 'all', // 可选值：horizontal, vertical, all, none
+          borderStyleType: 'thin', // 可选值：none, thin, dashed, medium, mediumDashed, thick
+          horizontalAlign: 'left', // 可选值：left, center, right
+          verticalAlign: 'middle', // 可选值：top, middle, bottom
+          wrapStrategy: 'overflow', // 可选值：wrap, overflow, clip
+          padding: {
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 8
+          },
           color: '#000',
-          fontSize: 12
+          fontSize: 12,
+          fontWeight: 'normal',
         },
         headerStyle: {
+          headerRowHeight: 20,
           backgroundColor: '#cfe2f3',
+          color: '#000',
+          fontSize: 12,
           fontWeight: 'normal'
         },
         readonlyCellStyle: {
           backgroundColor: '#eee',
+          color: '#000',
           fontWeight: 'normal'
         },
         selectCellStyle: {
           backgroundColor: '#fff',
+          color: '#000',
           fontWeight: 'normal'
         }
       }
@@ -189,6 +227,9 @@ export default {
         methods: {
           ...this.exposed.methods,
           getCurrentTableData: coreRef.getCurrentTableData,
+          getCurrentTableHeaderRowCount: coreRef.getCurrentTableHeaderRowCount,
+          getCurrentTableRowCount: coreRef.getCurrentTableRowCount,
+          getCurrentTableColumnCount: coreRef.getCurrentTableColumnCount,
           getRowByIndex: coreRef.getRowByIndex,
           endEditing: coreRef.endEditing,
           setCellFontColor: coreRef.setCellFontColor,

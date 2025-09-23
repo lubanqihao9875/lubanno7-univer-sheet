@@ -22,11 +22,23 @@ import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import UniverPresetSheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation'
+import { UniverSheetsFilterPreset } from '@univerjs/preset-sheets-filter'
+import { UniverSheetsSortPreset } from '@univerjs/preset-sheets-sort'
+import { UniverSheetsFindReplacePreset } from '@univerjs/preset-sheets-find-replace'
 import UniverPresetSheetsDataValidationZhCN from '@univerjs/preset-sheets-data-validation/locales/zh-CN'
 import UniverPresetSheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
+import UniverPresetSheetsFilterZhCN from '@univerjs/preset-sheets-filter/locales/zh-CN'
+import UniverPresetSheetsFilterEnUS from '@univerjs/preset-sheets-filter/locales/en-US'
+import UniverPresetSheetsSortZhCN from '@univerjs/preset-sheets-sort/locales/zh-CN'
+import UniverPresetSheetsSortEnUS from '@univerjs/preset-sheets-sort/locales/en-US'
+import UniverPresetSheetsFindReplaceZhCN from '@univerjs/preset-sheets-find-replace/locales/zh-CN'
+import UniverPresetSheetsFindReplaceEnUS from '@univerjs/preset-sheets-find-replace/locales/en-US'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-data-validation/lib/index.css'
+import '@univerjs/preset-sheets-filter/lib/index.css'
+import '@univerjs/preset-sheets-sort/lib/index.css'
+import '@univerjs/preset-sheets-find-replace/lib/index.css'
 
 /**
  * 可销毁资源管理器
@@ -120,7 +132,59 @@ export default {
     isAsyncEnabled() {
       return this.config.asyncOptions.isAsyncEnabled;
     },
-
+    /** 边框类型 */
+    borderType() {
+      const borderTypeMap = {
+        horizontal: 'BOTTOM',
+        vertical: 'RIGHT',
+        all: 'ALL',
+        none: 'NONE'
+      }
+      return this.univerAPIInstance.Enum.BorderType[borderTypeMap[this.config.commonStyle.borderType]];
+    },
+    /** 边框样式类型 */
+    borderStyleType() {
+      const borderStyleTypeMap = {
+        none: 'NONE',
+        thin: 'THIN',
+        dashed: 'DASHED',
+        medium: 'MEDIUM',
+        mediumDashed: 'MEDIUM_DASHED',
+        thick: 'THICK'
+      }
+      return this.univerAPIInstance.Enum.BorderStyleTypes[borderStyleTypeMap[this.config.commonStyle.borderStyleType]];
+    },
+    /** 边框颜色 */
+    borderColor() {
+      return this.config.commonStyle.borderColor;
+    },
+    /** 字体水平对齐 */
+    horizontalAlign() {
+      const horizontalAlignMap = {
+        left: 'LEFT',
+        center: 'CENTER',
+        right: 'RIGHT'
+      }
+      return this.univerAPIInstance.Enum.HorizontalAlign[horizontalAlignMap[this.config.commonStyle.horizontalAlign]];
+    },
+    /** 字体垂直对齐 */
+    verticalAlign() {
+      const verticalAlignMap = {
+        top: 'TOP',
+        middle: 'MIDDLE',
+        bottom: 'BOTTOM'
+      }
+      return this.univerAPIInstance.Enum.VerticalAlign[verticalAlignMap[this.config.commonStyle.verticalAlign]];
+    },
+    /** 字体换行策略 */
+    wrapStrategy() {
+      const wrapStrategyMap = {
+        wrap: 'WRAP',
+        overflow: 'OVERFLOW',
+        clip: 'CLIP'
+      }
+      return this.univerAPIInstance.Enum.WrapStrategy[wrapStrategyMap[this.config.commonStyle.wrapStrategy]];
+    },
   },
   data() {
     return {
@@ -173,35 +237,52 @@ export default {
      */
     async initSheet() {
       try {
-        // 创建Univer实例（配置国际化和预设）
+        const presets = [
+          UniverSheetsCorePreset({
+            container: this.$refs.sheetContainer,
+            header: Boolean(this.config.headerOptions.show),
+            toolbar: Boolean(this.config.headerOptions.showToolbar),
+            ribbonType: this.config.headerOptions.ribbonType,
+            footer: Boolean(this.config.footerOptions.show) ? {
+              sheetBar: false,
+              menus: false,
+              statisticBar: Boolean(this.config.footerOptions.showStatisticBar),
+              zoomSlider: Boolean(this.config.footerOptions.showZoomSlider)
+            } : false,
+            contextMenu: Boolean(this.config.showContextMenu),
+            sheets: { protectedRangeShadow: false },
+            menu: this.getSheetMenuConfig()
+          }),
+          UniverSheetsDataValidationPreset({ showEditOnDropdown: false }),
+        ]
+        if (this.config.plugins.filter.enabled) {
+          presets.push(UniverSheetsFilterPreset({ enableSyncSwitch: false }))
+        }
+        if (this.config.plugins.sort.enabled) {
+          presets.push(UniverSheetsSortPreset())
+        }
+        if (this.config.plugins.findReplace.enabled) {
+          presets.push(UniverSheetsFindReplacePreset())
+        }
         const { univer: univerInstance, univerAPI: univerAPIInstance } = createUniver({
           locale: this.config.locale === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
           locales: {
             [LocaleType.ZH_CN]: mergeLocales(
               UniverPresetSheetsCoreZhCN,
-              UniverPresetSheetsDataValidationZhCN
+              UniverPresetSheetsDataValidationZhCN,
+              UniverPresetSheetsFilterZhCN,
+              UniverPresetSheetsSortZhCN,
+              UniverPresetSheetsFindReplaceZhCN
             ),
             [LocaleType.EN_US]: mergeLocales(
               UniverPresetSheetsCoreEnUS,
-              UniverPresetSheetsDataValidationEnUS
+              UniverPresetSheetsDataValidationEnUS,
+              UniverPresetSheetsFilterEnUS,
+              UniverPresetSheetsSortEnUS,
+              UniverPresetSheetsFindReplaceEnUS
             )
           },
-          presets: [
-            // 核心表格预设
-            UniverSheetsCorePreset({
-              container: this.$refs.sheetContainer,
-              header: Boolean(this.config.showHeader),
-              toolbar: Boolean(this.config.showToolbar),
-              footer: Boolean(this.config.showFooter) ? {
-                sheetBar: false,
-                menus: false
-              } : false,
-              sheets: { protectedRangeShadow: false },
-              menu: this.getSheetMenuConfig()
-            }),
-            // 数据验证预设（下拉选择等）
-            UniverSheetsDataValidationPreset({ showEditOnDropdown: false })
-          ]
+          presets: presets
         });
 
         this.univerInstance = univerInstance;
@@ -714,7 +795,8 @@ export default {
       this.updatingCells.push({ row, column });
       const range = worksheet.getRange(row, column, 1, 1);
       range.setFontSize(this.config.commonStyle.fontSize);
-      range.setVerticalAlignment('middle');
+      range.setVerticalAlignment(this.config.commonStyle.verticalAlign);
+      range.setWrapStrategy(this.wrapStrategy);
     },
 
     /** 处理滚动事件 */
@@ -969,12 +1051,15 @@ export default {
       // 3. 应用表头样式
       const headerRange = worksheet.getRange(0, 0, rowCount, colCount);
       const headerStyle = this.config.headerStyle;
+      worksheet.setRowHeights(0, rowCount, headerStyle.headerRowHeight);
       headerRange.setBackgroundColor(headerStyle.backgroundColor);
+      headerRange.setFontColor(headerStyle.color);
+      headerRange.setFontSize(headerStyle.fontSize);
       headerRange.setFontWeight(headerStyle.fontWeight);
       headerRange.setBorder(
-        this.univerAPIInstance.Enum.BorderType.ALL,
-        this.univerAPIInstance.Enum.BorderStyleTypes.THIN,
-        this.config.commonStyle.borderColor
+        this.borderType,
+        this.borderStyleType,
+        this.borderColor
       );
 
       // 4. 分批设置列宽
@@ -1408,18 +1493,19 @@ export default {
       // 设置默认单元格样式
       worksheet.setDefaultStyle({
         fs: this.config.commonStyle.fontSize,
-        ht: this.univerAPIInstance.Enum.HorizontalAlign.LEFT,
-        vt: this.univerAPIInstance.Enum.VerticalAlign.MIDDLE,
-        tb: this.univerAPIInstance.Enum.WrapStrategy.WRAP,
+        bl: this.config.commonStyle.fontWeight === 'bold' ? 1 : 0,
+        ht: this.horizontalAlign,
+        vt: this.verticalAlign,
+        tb: this.wrapStrategy,
         bg: { rgb: this.config.commonStyle.backgroundColor },
-        bd: {
-          t: { cl: { rgb: this.config.commonStyle.borderColor } },
-          b: { cl: { rgb: this.config.commonStyle.borderColor } },
-          l: { cl: { rgb: this.config.commonStyle.borderColor } },
-          r: { cl: { rgb: this.config.commonStyle.borderColor } }
-        },
+        bd: this.getBorderConfig(),
         cl: { rgb: this.config.commonStyle.color },
-        pd: { t: 0, b: 0, l: 8, r: 0 }
+        pd: {
+          t: this.config.commonStyle.padding.top,
+          b: this.config.commonStyle.padding.bottom,
+          l: this.config.commonStyle.padding.left,
+          r: this.config.commonStyle.padding.right
+        }
       });
       // 设置缩放比例
       worksheet.zoom(this.config.zoom);
@@ -1432,12 +1518,15 @@ export default {
       const colCount = headerRows[0].length;
       const headerRange = worksheet.getRange(0, 0, rowCount, colCount);
       const headerStyle = this.config.headerStyle;
+      worksheet.setRowHeights(0, rowCount, headerStyle.headerRowHeight);
       headerRange.setBackgroundColor(headerStyle.backgroundColor);
+      headerRange.setFontColor(headerStyle.color);
+      headerRange.setFontSize(headerStyle.fontSize);
       headerRange.setFontWeight(headerStyle.fontWeight);
       headerRange.setBorder(
-        this.univerAPIInstance.Enum.BorderType.ALL,
-        this.univerAPIInstance.Enum.BorderStyleTypes.THIN,
-        this.config.commonStyle.borderColor
+        this.borderType,
+        this.borderStyleType,
+        this.borderColor
       )
       // 设置工作簿权限
       this.setWorkbookPermission(unitId, permission);
@@ -1445,6 +1534,36 @@ export default {
       await this.setWorksheetPermission(unitId, subUnitId, permission);
       // 设置表头保护权限
       // await this.setHeaderProtectionPermission(unitId, subUnitId, worksheet, permission);
+    },
+
+    /**
+     * 获取边框配置
+     */
+    getBorderConfig() {
+      const border = {
+        s: this.borderStyleType,
+        cl: { rgb: this.borderColor }
+      };
+      if (this.config.commonStyle.borderType === 'horizontal') {
+        return {
+          t: border,
+          b: border
+        }
+      } else if (this.config.commonStyle.borderType === 'vertical') {
+        return {
+          l: border,
+          r: border
+        }
+      } else if (this.config.commonStyle.borderType === 'all') {
+        return {
+          t: border,
+          b: border,
+          l: border,
+          r: border
+        }
+      } else {
+        return {};
+      }
     },
 
     /**
@@ -1563,11 +1682,12 @@ export default {
               const cellRange = this.getCellRange(worksheet, actualRowIdx, colIdx);
               // 应用只读样式
               cellRange.setBackgroundColor(readonlyStyle.backgroundColor);
+              cellRange.setFontColor(readonlyStyle.color);
               cellRange.setFontWeight(readonlyStyle.fontWeight);
               cellRange.setBorder(
-                this.univerAPIInstance.Enum.BorderType.ALL,
-                this.univerAPIInstance.Enum.BorderStyleTypes.THIN,
-                this.config.commonStyle.borderColor
+                this.borderType,
+                this.borderStyleType,
+                this.borderColor
               );
             }
           }
@@ -1592,11 +1712,12 @@ export default {
             const cellRange = this.getCellRange(worksheet, actualRowIdx, colIdx);
             // 应用只读样式
             cellRange.setBackgroundColor(readonlyStyle.backgroundColor);
+            cellRange.setFontColor(readonlyStyle.color);
             cellRange.setFontWeight(readonlyStyle.fontWeight);
             cellRange.setBorder(
-              this.univerAPIInstance.Enum.BorderType.ALL,
-              this.univerAPIInstance.Enum.BorderStyleTypes.THIN,
-              this.config.commonStyle.borderColor
+              this.borderType,
+              this.borderStyleType,
+              this.borderColor
             );
           }
         }
@@ -1635,8 +1756,8 @@ export default {
             // 解析select配置
             const { options = [], multiple = false, allowInput = false, selectValidationError } = editorConfig;
             const errorMsg = selectValidationError || (allowInput
-              ? this.config.selectValidationErrorInfo
-              : this.config.selectValidationErrorStop);
+              ? this.config.selectOptions.selectValidationErrorInfo
+              : this.config.selectOptions.selectValidationErrorStop);
             const errorStyle = allowInput
               ? this.univerAPIInstance.Enum.DataValidationErrorStyle.INFO
               : this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP;
@@ -1661,6 +1782,7 @@ export default {
             if (this.config.selectCellStyle) {
               const selectStyle = this.config.selectCellStyle;
               cellRange.setBackgroundColor(selectStyle.backgroundColor || this.config.commonStyle.backgroundColor);
+              cellRange.setFontColor(selectStyle.color || this.config.commonStyle.color);
               if (selectStyle.fontWeight) cellRange.setFontWeight(selectStyle.fontWeight);
             }
           } catch (error) {
@@ -1701,8 +1823,8 @@ export default {
           // 解析select配置
           const { options = [], multiple = false, allowInput = false, selectValidationError } = editorConfig;
           const errorMsg = selectValidationError || (allowInput
-            ? this.config.selectValidationErrorInfo
-            : this.config.selectValidationErrorStop);
+            ? this.config.selectOptions.selectValidationErrorInfo
+            : this.config.selectOptions.selectValidationErrorStop);
           const errorStyle = allowInput
             ? this.univerAPIInstance.Enum.DataValidationErrorStyle.INFO
             : this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP;
@@ -1727,6 +1849,7 @@ export default {
           if (this.config.selectCellStyle) {
             const selectStyle = this.config.selectCellStyle;
             cellRange.setBackgroundColor(selectStyle.backgroundColor || this.config.commonStyle.backgroundColor);
+            cellRange.setFontColor(selectStyle.color || this.config.commonStyle.color);
             if (selectStyle.fontWeight) cellRange.setFontWeight(selectStyle.fontWeight);
           }
         } catch (error) {
@@ -1747,12 +1870,13 @@ export default {
 
         // 重置基础样式
         cellRange.setBackgroundColor(this.config.commonStyle.backgroundColor);
+        cellRange.setFontColor(this.config.commonStyle.color);
         cellRange.setFontWeight('normal');
-        if (this.config.commonStyle.borderColor) {
+        if (this.borderColor) {
           cellRange.setBorder(
-            this.univerAPIInstance.Enum.BorderType.ALL,
-            this.univerAPIInstance.Enum.BorderStyleTypes.THIN,
-            this.config.commonStyle.borderColor
+            this.borderType,
+            this.borderStyleType,
+            this.borderColor
           );
         }
 
@@ -1763,6 +1887,7 @@ export default {
         if (this.config.readonlyCellStyle && this.isCellReadonly(actualRowIdx, colIdx)) {
           const readonlyStyle = this.config.readonlyCellStyle;
           cellRange.setBackgroundColor(readonlyStyle.backgroundColor);
+          cellRange.setFontColor(readonlyStyle.color);
           cellRange.setFontWeight(readonlyStyle.fontWeight);
         }
 
@@ -1902,8 +2027,8 @@ export default {
     applySelectEditor(cellRange, editorConfig) {
       const { options = [], multiple = false, allowInput = false, selectValidationError } = editorConfig;
       const errorMsg = selectValidationError || (allowInput
-        ? this.config.selectValidationErrorInfo
-        : this.config.selectValidationErrorStop);
+        ? this.config.selectOptions.selectValidationErrorInfo
+        : this.config.selectOptions.selectValidationErrorStop);
       const errorStyle = allowInput
         ? this.univerAPIInstance.Enum.DataValidationErrorStyle.INFO
         : this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP;
@@ -1925,6 +2050,7 @@ export default {
       // 应用select样式
       const selectStyle = this.config.selectCellStyle;
       cellRange.setBackgroundColor(selectStyle.backgroundColor || this.config.commonStyle.backgroundColor);
+      cellRange.setFontColor(selectStyle.color || this.config.commonStyle.color);
       if (selectStyle.fontWeight) cellRange.setFontWeight(selectStyle.fontWeight);
     },
 
@@ -2197,7 +2323,29 @@ export default {
      */
     floorMin1(num) {
       return Math.max(Math.floor(num), 1);
-    }
+    },
+    
+    /**
+     * 获取当前表格的表头行数
+     */
+    getCurrentTableHeaderRowCount() {
+      return this.headerRowCount;
+    },
+
+    /**
+     * 获取当前表格的总行数
+     */
+    getCurrentTableRowCount() {
+      this.syncCurrentTableData();
+      return this.headerRowCount + this.currentTableData.length;
+    },
+
+    /**
+     * 获取当前表格的总列数
+     */
+    getCurrentTableColumnCount() {
+      return this.flatColumns.length;
+    },
   }
 };
 </script>

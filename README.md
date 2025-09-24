@@ -44,9 +44,10 @@ export default {
         { name: '李四', age: 30, address: '上海市' }
       ],
       config: {
-        locale: 'zh-CN',
-        allowInsertRow: true,
-        allowDeleteRow: true
+        styleOptions: {
+          width: '100%',
+          height: '300px'
+        }
       }
     };
   },

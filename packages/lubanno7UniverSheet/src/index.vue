@@ -83,10 +83,10 @@ export default {
       // 默认配置集中管理
       defaultConfig: {
         locale: 'zh-CN',
-        allowInsertRow: true,
-        allowDeleteRow: true,
+        darkMode: false,
         autoRefreshOnPropChange: false,
         loadingMessage: '数据加载中...',
+        theme: 'defaultTheme', // 可选值：defaultTheme, greenTheme
         headerOptions: {
           show: true,          // 是否展示整个头部
           showToolbar: true,   // 是否展示头部中的工具栏
@@ -102,6 +102,11 @@ export default {
           selectValidationErrorInfo: '无效只是警告，该输入不在下拉列表中，但实际可以输入',
           selectValidationErrorStop: '请从下拉列表中选择一个值',
         },
+        checkboxOptions: {
+          checkboxValidationError: '请选择有效的复选框值',
+          checkedValue: 1,
+          uncheckedValue: 0
+        },
         emptyDataText: '暂无数据',
         asyncOptions: {
           isAsyncEnabled: false,
@@ -111,7 +116,11 @@ export default {
           setColWidthBatchRatio: 1,
           loadDataBatchRatio: 1,
           updateReadonlyCellStylesBatchRatio: 1,
-          setSelectCellDataValidationBatchRatio: 1
+          setCellDataValidationBatchRatio: 1
+        },
+        permissionOptions: {
+          allowInsertRow: true,
+          allowDeleteRow: true
         },
         plugins: {
           filter: {
@@ -180,6 +189,11 @@ export default {
           backgroundColor: '#fff',
           color: '#000',
           fontWeight: 'normal'
+        },
+        checkboxCellStyle: {
+          backgroundColor: '#fff',
+          color: '#0078d4',
+          fontWeight: 'normal'
         }
       }
     }
@@ -192,14 +206,14 @@ export default {
           defaultConfig: this.defaultConfig
         },
         methods: {
-          recreateTable: this.recreateTable,
-          refreshTableCommonConfig: this.refreshTableCommonConfig
+          recreateTable: this.recreateTable
         }
       };
     },
     
     recreateTable() {
       this.isComponentAlive = false;
+      this.exposed = this.createInitialExposed();
       this.$nextTick(() => {
         this.isComponentAlive = true;
       });

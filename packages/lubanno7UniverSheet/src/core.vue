@@ -33,7 +33,7 @@ import UniverPresetSheetsSortZhCN from '@univerjs/preset-sheets-sort/locales/zh-
 import UniverPresetSheetsSortEnUS from '@univerjs/preset-sheets-sort/locales/en-US'
 import UniverPresetSheetsFindReplaceZhCN from '@univerjs/preset-sheets-find-replace/locales/zh-CN'
 import UniverPresetSheetsFindReplaceEnUS from '@univerjs/preset-sheets-find-replace/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales, defaultTheme, greenTheme } from '@univerjs/presets'
 import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-data-validation/lib/index.css'
 import '@univerjs/preset-sheets-filter/lib/index.css'
@@ -266,6 +266,8 @@ export default {
         }
         const { univer: univerInstance, univerAPI: univerAPIInstance } = createUniver({
           locale: this.config.locale === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+          theme: this.config.theme === 'defaultTheme' ? defaultTheme : greenTheme,
+          darkMode: Boolean(this.config.darkMode),
           locales: {
             [LocaleType.ZH_CN]: mergeLocales(
               UniverPresetSheetsCoreZhCN,
@@ -575,9 +577,9 @@ export default {
           
           // 根据配置选择同步或异步方式设置下拉选择框
           if (!this.isAsyncEnabled) {
-            this.setSelectCellDataValidationSync(worksheet);
+            this.setCellDataValidationSync(worksheet);
           } else {
-            await this.setSelectCellDataValidation(worksheet);
+            await this.setCellDataValidation(worksheet);
           }
 
           // 初始化完成标记
@@ -1115,7 +1117,7 @@ export default {
       // 数据加载完成后处理样式和验证
       await this.batchProcess(0, 1, 1, async () => {
         this.updateReadonlyCellStyles(worksheet);
-        await this.setSelectCellDataValidation(worksheet);
+        await this.setCellDataValidation(worksheet);
       });
     },
 
@@ -1193,7 +1195,7 @@ export default {
           row.forEach((cellValue, colIndex) => {
             const column = this.flatColumns[colIndex];
             if (column) {
-              const field = column.prop || column.dataIndex;
+              const field = column.prop;
               if (field) rowData[field] = cellValue;
             }
           });
@@ -1618,11 +1620,11 @@ export default {
       const permissions = {
         WorksheetCopyPermission: true,
         WorksheetDeleteColumnPermission: false,
-        WorksheetDeleteRowPermission: this.config.allowDeleteRow,
+        WorksheetDeleteRowPermission: this.config.permissionOptions.allowDeleteRow,
         WorksheetFilterPermission: true,
         WorksheetInsertColumnPermission: false,
         WorksheetInsertHyperlinkPermission: true,
-        WorksheetInsertRowPermission: this.config.allowInsertRow,
+        WorksheetInsertRowPermission: this.config.permissionOptions.allowInsertRow,
         WorksheetPivotTablePermission: true,
         WorksheetSetCellStylePermission: true,
         WorksheetSetCellValuePermission: true,
@@ -1741,13 +1743,13 @@ export default {
     },
 
     /**
-     * 设置select类型单元格的数据验证（下拉选择）- 异步分批
+     * 设置单元格的数据验证 - 异步分批
      */
-    async setSelectCellDataValidation(worksheet) {
+    async setCellDataValidation(worksheet) {
       if (!this.univerAPIInstance) return;
 
       const totalCells = this.currentTableData.length * this.totalColumns;
-      const batchSize = this.floorMin1(this.config.asyncOptions.baseBatchSize * this.config.asyncOptions.setSelectCellDataValidationBatchRatio);
+      const batchSize = this.floorMin1(this.config.asyncOptions.baseBatchSize * this.config.asyncOptions.setCellDataValidationBatchRatio);
       
       // 分批处理，避免UI阻塞
       return this.batchProcess(0, totalCells, batchSize, async (startIdx, endIdx) => {
@@ -1767,51 +1769,27 @@ export default {
               column,
               columnIndex: colIdx
             });
-            if (!editorConfig || editorConfig.type !== 'select') continue;
+            if (!editorConfig || (editorConfig.type !== 'select' && editorConfig.type !== 'checkbox')) continue;
 
-            // 解析select配置
-            const { options = [], multiple = false, allowInput = false, selectValidationError } = editorConfig;
-            const errorMsg = selectValidationError || (allowInput
-              ? this.config.selectOptions.selectValidationErrorInfo
-              : this.config.selectOptions.selectValidationErrorStop);
-            const errorStyle = allowInput
-              ? this.univerAPIInstance.Enum.DataValidationErrorStyle.INFO
-              : this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP;
-
-            // 创建数据验证规则并应用
             const actualRowIdx = this.headerRowCount + rowDataIdx;
             const cellRange = this.getCellRange(worksheet, actualRowIdx, colIdx);
-            const rule = this.univerAPIInstance.newDataValidation()
-              .requireValueInList(options, multiple)
-              .setOptions({
-                renderMode: this.univerAPIInstance.Enum.DataValidationRenderMode.ARROW,
-                allowBlank: true,
-                showErrorMessage: true,
-                error: errorMsg,
-                errorStyle
-              })
-              .build();
 
-            cellRange.setDataValidation(rule);
-
-            // 应用select单元格样式
-            if (this.config.selectCellStyle) {
-              const selectStyle = this.config.selectCellStyle;
-              cellRange.setBackgroundColor(selectStyle.backgroundColor || this.config.commonStyle.backgroundColor);
-              cellRange.setFontColor(selectStyle.color || this.config.commonStyle.color);
-              if (selectStyle.fontWeight) cellRange.setFontWeight(selectStyle.fontWeight);
+            if (editorConfig.type === 'select') {
+              this.applySelectEditor(cellRange, editorConfig);
+            } else if (editorConfig.type === 'checkbox') {
+              this.applyCheckboxEditor(cellRange, editorConfig);
             }
           } catch (error) {
-            this.handleError(`设置单元格(${rowDataIdx},${colIdx})下拉配置失败`, error);
+            this.handleError(`设置单元格(${rowDataIdx},${colIdx})数据验证失败`, error);
           }
         }
       });
     },
 
     /**
-     * 设置select类型单元格的数据验证（下拉选择）- 同步
+     * 设置单元格的数据验证 - 同步
      */
-    setSelectCellDataValidationSync(worksheet) {
+    setCellDataValidationSync(worksheet) {
       if (!this.univerAPIInstance) return;
 
       const totalCells = this.currentTableData.length * this.totalColumns;
@@ -1834,42 +1812,17 @@ export default {
             column,
             columnIndex: colIdx
           });
-          if (!editorConfig || editorConfig.type !== 'select') continue;
+          if (!editorConfig || (editorConfig.type !== 'select' && editorConfig.type !== 'checkbox')) continue;
 
-          // 解析select配置
-          const { options = [], multiple = false, allowInput = false, selectValidationError } = editorConfig;
-          const errorMsg = selectValidationError || (allowInput
-            ? this.config.selectOptions.selectValidationErrorInfo
-            : this.config.selectOptions.selectValidationErrorStop);
-          const errorStyle = allowInput
-            ? this.univerAPIInstance.Enum.DataValidationErrorStyle.INFO
-            : this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP;
-
-          // 创建数据验证规则并应用
           const actualRowIdx = this.headerRowCount + rowDataIdx;
           const cellRange = this.getCellRange(worksheet, actualRowIdx, colIdx);
-          const rule = this.univerAPIInstance.newDataValidation()
-            .requireValueInList(options, multiple)
-            .setOptions({
-              renderMode: this.univerAPIInstance.Enum.DataValidationRenderMode.ARROW,
-              allowBlank: true,
-              showErrorMessage: true,
-              error: errorMsg,
-              errorStyle
-            })
-            .build();
-
-          cellRange.setDataValidation(rule);
-
-          // 应用select单元格样式
-          if (this.config.selectCellStyle) {
-            const selectStyle = this.config.selectCellStyle;
-            cellRange.setBackgroundColor(selectStyle.backgroundColor || this.config.commonStyle.backgroundColor);
-            cellRange.setFontColor(selectStyle.color || this.config.commonStyle.color);
-            if (selectStyle.fontWeight) cellRange.setFontWeight(selectStyle.fontWeight);
-          }
+          if (editorConfig.type === 'select') {
+              this.applySelectEditor(cellRange, editorConfig);
+            } else if (editorConfig.type === 'checkbox') {
+              this.applyCheckboxEditor(cellRange, editorConfig);
+            }
         } catch (error) {
-          this.handleError(`设置单元格(${rowDataIdx},${colIdx})下拉配置失败`, error);
+          this.handleError(`设置单元格(${rowDataIdx},${colIdx})数据验证失败`, error);
         }
       }
     },
@@ -1907,15 +1860,19 @@ export default {
           cellRange.setFontWeight(readonlyStyle.fontWeight);
         }
 
-        // 应用select编辑器配置
         const editorConfig = this.getEditorConfig(column.editor, {
           row: rowData,
           rowIndex: rowDataIdx,
           column,
           columnIndex: colIdx
         });
+        // 应用select编辑器配置
         if (editorConfig && editorConfig.type === 'select') {
           this.applySelectEditor(cellRange, editorConfig);
+        }
+        // 应用checkbox编辑器配置
+        else if (editorConfig && editorConfig.type === 'checkbox') {
+          this.applyCheckboxEditor(cellRange, editorConfig);
         }
       }
     },
@@ -2068,6 +2025,35 @@ export default {
       cellRange.setBackgroundColor(selectStyle.backgroundColor || this.config.commonStyle.backgroundColor);
       cellRange.setFontColor(selectStyle.color || this.config.commonStyle.color);
       if (selectStyle.fontWeight) cellRange.setFontWeight(selectStyle.fontWeight);
+    },
+
+    /**
+     * 应用checkbox编辑器配置
+     */
+    applyCheckboxEditor(cellRange, editorConfig) {
+      let { checkboxValidationError, checkedValue, uncheckedValue } = editorConfig;
+      const errorMsg = checkboxValidationError || this.config.checkboxOptions.checkboxValidationError;
+      checkedValue = checkedValue || this.config.checkboxOptions.checkedValue;
+      uncheckedValue = uncheckedValue || this.config.checkboxOptions.uncheckedValue;
+
+      // 创建并应用数据验证规则
+      const rule = this.univerAPIInstance.newDataValidation()
+        .requireCheckbox(checkedValue, uncheckedValue)
+        .setOptions({
+          allowBlank: true,
+          showErrorMessage: true,
+          error: errorMsg,
+          errorStyle: this.univerAPIInstance.Enum.DataValidationErrorStyle.STOP
+        })
+        .build();
+
+      cellRange.setDataValidation(rule);
+
+      // 应用checkbox样式
+      const checkboxStyle = this.config.checkboxCellStyle;
+      cellRange.setBackgroundColor(checkboxStyle.backgroundColor || this.config.commonStyle.backgroundColor);
+      cellRange.setFontColor(checkboxStyle.color || this.config.commonStyle.color);
+      if (checkboxStyle.fontWeight) cellRange.setFontWeight(checkboxStyle.fontWeight);
     },
 
     /**
@@ -2228,7 +2214,7 @@ export default {
     getColumnName(colIdx) {
       if (colIdx < 0 || colIdx >= this.flatColumns.length) return '';
       const column = this.flatColumns[colIdx];
-      return column?.prop || column?.dataIndex || '';
+      return column?.prop || '';
     },
 
     /**

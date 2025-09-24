@@ -37,7 +37,6 @@
     "@univerjs/preset-sheets-find-replace": "0.10.3",
     "@univerjs/preset-sheets-sort": "0.10.3",
     "@univerjs/presets": "0.10.3",
-    "element-ui": "^2.14.1",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },
@@ -46,15 +45,10 @@
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
-    "@babel/eslint-parser": "^7.12.16",
     "@vue/cli-plugin-babel": "~5.0.0",
-    "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
     "core-js": "^3.6.5",
-    "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.0.3",
-    "node-sass": "^4.12.0",
-    "sass-loader": "^8.0.2",
+    "element-ui": "^2.14.1",
     "vue": "^2.6.11",
     "vue-router": "^3.5.0",
     "vue-template-compiler": "^2.6.11"

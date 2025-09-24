@@ -575,7 +575,7 @@ export default {
             await this.updateReadonlyCellStyles(worksheet);
           }
           
-          // 根据配置选择同步或异步方式设置下拉选择框
+          // 根据配置选择同步或异步方式设置数据验证
           if (!this.isAsyncEnabled) {
             this.setCellDataValidationSync(worksheet);
           } else {

@@ -185,6 +185,15 @@ export default {
       }
       return this.univerAPIInstance.Enum.WrapStrategy[wrapStrategyMap[this.config.commonStyle.wrapStrategy]];
     },
+    /** 下拉选择渲染模式 */
+    selectValidationRenderMode() {
+      const selectValidationRenderModeMap = {
+        text: 'TEXT',
+        arrow: 'ARROW',
+        custom: 'CUSTOM'
+      }
+      return this.univerAPIInstance.Enum.DataValidationRenderMode[selectValidationRenderModeMap[this.config.selectOptions.selectValidationRenderMode]];
+    }
   },
   data() {
     return {
@@ -1687,7 +1696,6 @@ export default {
     updateReadonlyCellStyles(worksheet) {
       if (!worksheet || !this.config.readonlyCellStyle) return;
 
-      const readonlyStyle = this.config.readonlyCellStyle;
       const totalDataRows = this.currentTableData.length;
       const batchSize = this.floorMin1(this.config.asyncOptions.baseBatchSize * this.config.asyncOptions.updateReadonlyCellStylesBatchRatio);
 
@@ -1698,15 +1706,7 @@ export default {
           for (let colIdx = 0; colIdx < this.totalColumns; colIdx++) {
             if (this.isCellReadonly(actualRowIdx, colIdx)) {
               const cellRange = this.getCellRange(worksheet, actualRowIdx, colIdx);
-              // 应用只读样式
-              cellRange.setBackgroundColor(readonlyStyle.backgroundColor);
-              cellRange.setFontColor(readonlyStyle.color);
-              cellRange.setFontWeight(readonlyStyle.fontWeight);
-              cellRange.setBorder(
-                this.borderType,
-                this.borderStyleType,
-                this.borderColor
-              );
+              this.applyReadonlyStyleToCell(cellRange);
             }
           }
         }
@@ -1719,7 +1719,6 @@ export default {
     updateReadonlyCellStylesSync(worksheet) {
       if (!worksheet || !this.config.readonlyCellStyle) return;
 
-      const readonlyStyle = this.config.readonlyCellStyle;
       const totalDataRows = this.currentTableData.length;
 
       // 直接遍历所有数据行的单元格，不使用requestAnimationFrame
@@ -1728,15 +1727,7 @@ export default {
         for (let colIdx = 0; colIdx < this.totalColumns; colIdx++) {
           if (this.isCellReadonly(actualRowIdx, colIdx)) {
             const cellRange = this.getCellRange(worksheet, actualRowIdx, colIdx);
-            // 应用只读样式
-            cellRange.setBackgroundColor(readonlyStyle.backgroundColor);
-            cellRange.setFontColor(readonlyStyle.color);
-            cellRange.setFontWeight(readonlyStyle.fontWeight);
-            cellRange.setBorder(
-              this.borderType,
-              this.borderStyleType,
-              this.borderColor
-            );
+            this.applyReadonlyStyleToCell(cellRange);
           }
         }
       }
@@ -1853,11 +1844,8 @@ export default {
         cellRange.setDataValidation(null);
 
         // 应用只读样式
-        if (this.config.readonlyCellStyle && this.isCellReadonly(actualRowIdx, colIdx)) {
-          const readonlyStyle = this.config.readonlyCellStyle;
-          cellRange.setBackgroundColor(readonlyStyle.backgroundColor);
-          cellRange.setFontColor(readonlyStyle.color);
-          cellRange.setFontWeight(readonlyStyle.fontWeight);
+        if (this.isCellReadonly(actualRowIdx, colIdx)) {
+          this.applyReadonlyStyleToCell(cellRange);
         }
 
         const editorConfig = this.getEditorConfig(column.editor, {
@@ -2010,7 +1998,7 @@ export default {
       const rule = this.univerAPIInstance.newDataValidation()
         .requireValueInList(options, multiple)
         .setOptions({
-          renderMode: this.univerAPIInstance.Enum.DataValidationRenderMode.ARROW,
+          renderMode: this.selectValidationRenderMode,
           allowBlank: true,
           showErrorMessage: true,
           error: errorMsg,
@@ -2054,6 +2042,21 @@ export default {
       cellRange.setBackgroundColor(checkboxStyle.backgroundColor || this.config.commonStyle.backgroundColor);
       cellRange.setFontColor(checkboxStyle.color || this.config.commonStyle.color);
       if (checkboxStyle.fontWeight) cellRange.setFontWeight(checkboxStyle.fontWeight);
+    },
+
+    /**
+     * 应用只读样式到单元格
+     */
+    applyReadonlyStyleToCell(cellRange) {
+      const readonlyStyle = this.config.readonlyCellStyle;
+      cellRange.setBackgroundColor(readonlyStyle.backgroundColor);
+      cellRange.setFontColor(readonlyStyle.color);
+      cellRange.setFontWeight(readonlyStyle.fontWeight);
+      cellRange.setBorder(
+        this.borderType,
+        this.borderStyleType,
+        this.borderColor
+      );
     },
 
     /**
@@ -2236,9 +2239,9 @@ export default {
     },
 
     /**
-     * 获取当前表格数据（外部调用入口，自动同步最新数据）
+     * 获取表格数据
      */
-    getCurrentTableData() {
+    getTableData() {
       this.syncCurrentTableData();
       return this.currentTableData;
     },
@@ -2328,32 +2331,32 @@ export default {
     },
     
     /**
-     * 获取当前表格的表头行数
+     * 获取表格的表头行数
      */
-    getCurrentTableHeaderRowCount() {
+    getTableHeaderRowCount() {
       return this.headerRowCount;
     },
 
     /**
-     * 获取当前表格的数据行数
+     * 获取表格的数据行数
      */
-    getCurrentTableDataRowCount() {
+    getTableDataRowCount() {
       this.syncCurrentTableData();
       return this.currentTableData.length;
     },
 
     /**
-     * 获取当前表格的总行数
+     * 获取表格的总行数
      */
-    getCurrentTableRowCount() {
+    getTableRowCount() {
       this.syncCurrentTableData();
       return this.headerRowCount + this.currentTableData.length;
     },
 
     /**
-     * 获取当前表格的总列数
+     * 获取表格的总列数
      */
-    getCurrentTableColumnCount() {
+    getTableColumnCount() {
       return this.flatColumns.length;
     },
   }

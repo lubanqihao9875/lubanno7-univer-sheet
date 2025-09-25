@@ -101,6 +101,7 @@ export default {
         selectOptions: {
           selectValidationErrorInfo: '无效只是警告，该输入不在下拉列表中，但实际可以输入',
           selectValidationErrorStop: '请从下拉列表中选择一个值',
+          selectValidationRenderMode: 'arrow' // 可选值：text, arrow, custom
         },
         checkboxOptions: {
           checkboxValidationError: '请选择有效的复选框值',
@@ -247,11 +248,11 @@ export default {
         },
         methods: {
           ...this.exposed.methods,
-          getCurrentTableData: coreRef.getCurrentTableData,
-          getCurrentTableHeaderRowCount: coreRef.getCurrentTableHeaderRowCount,
-          getCurrentTableDataRowCount: coreRef.getCurrentTableDataRowCount,
-          getCurrentTableRowCount: coreRef.getCurrentTableRowCount,
-          getCurrentTableColumnCount: coreRef.getCurrentTableColumnCount,
+          getTableData: coreRef.getTableData,
+          getTableHeaderRowCount: coreRef.getTableHeaderRowCount,
+          getTableDataRowCount: coreRef.getTableDataRowCount,
+          getTableRowCount: coreRef.getTableRowCount,
+          getTableColumnCount: coreRef.getTableColumnCount,
           getRowByIndex: coreRef.getRowByIndex,
           endEditing: coreRef.endEditing,
           setCellFontColor: coreRef.setCellFontColor,

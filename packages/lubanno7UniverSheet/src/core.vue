@@ -2,14 +2,14 @@
   <div class="lubanno7-univer-sheet-wrapper" :style="config.styleOptions">
     <div ref="sheetContainer" :style="config.styleOptions"></div>
     <!-- 加载遮罩 -->
-    <div v-if="pendingUpdates !== 0 || !isTableInitialized" class="custom-loading-mask">
+    <div v-if="pendingDataSync !== 0 || !isTableInitialized" class="custom-loading-mask">
       <div class="loading-content">
         <div class="loading-spinner"></div>
         <div class="loading-text">{{ config.loadingMessage }}</div>
       </div>
     </div>
     <!-- 空数据遮罩 -->
-    <div v-if="isTableInitialized && pendingUpdates === 0 && currentTableData.length === 0" class="empty-data-mask">
+    <div v-if="isTableInitialized && pendingDataSync === 0 && currentTableData.length === 0" class="empty-data-mask">
       <div class="empty-data-content">
         <div class="empty-data-text">{{ config.emptyDataText }}</div>
       </div>
@@ -41,52 +41,52 @@ import '@univerjs/preset-sheets-sort/lib/index.css'
 import '@univerjs/preset-sheets-find-replace/lib/index.css'
 
 /**
- * 可销毁资源管理器
- * 管理组件内所有需要手动销毁的资源（事件监听、API实例等）
+ * 资源管理器
+ * 管理组件内所有需要手动释放的资源（如事件监听器、API实例等）
  */
-class DisposableManager {
+class ResourceManager {
   constructor() {
-    // 键：资源标识，值：可销毁实例（需含dispose方法）
-    this.disposables = {};
+    // 键：资源标识，值：可释放的资源实例（需含 dispose 方法）
+    this.resources = {};
   }
 
   /**
-   * 添加可销毁资源
+   * 添加可释放的资源
    * @param {string} id 资源唯一标识
-   * @param {object} disposable 可销毁实例（必须包含dispose方法）
+   * @param {object} resource 可释放的资源实例（必须包含 dispose 方法）
    */
-  add(id, disposable) {
+  add(id, resource) {
     if (typeof id !== 'string' || !id) {
-      console.error('Disposable ID 必须是有效字符串:', id);
+      console.error('资源 ID 必须是有效字符串:', id);
       return;
     }
-    if (disposable && typeof disposable.dispose === 'function') {
-      // 存在同ID资源时先销毁旧资源
+    if (resource && typeof resource.dispose === 'function') {
+      // 存在同ID资源时先释放旧资源
       this.remove(id);
-      this.disposables[id] = disposable;
+      this.resources[id] = resource;
     }
   }
 
   /**
-   * 移除并销毁指定资源
+   * 移除并释放指定资源
    * @param {string} id 资源唯一标识
    */
   remove(id) {
-    if (this.disposables[id]) {
+    if (this.resources[id]) {
       try {
-        this.disposables[id].dispose();
+        this.resources[id].dispose();
       } catch (e) {
-        console.error(`销毁资源 ${id} 失败:`, e);
+        console.error(`释放资源 ${id} 失败:`, e);
       }
-      delete this.disposables[id];
+      delete this.resources[id];
     }
   }
 
   /**
-   * 销毁所有资源
+   * 释放所有资源
    */
-  disposeAll() {
-    Object.keys(this.disposables).forEach(id => this.remove(id));
+  releaseAll() {
+    Object.keys(this.resources).forEach(id => this.remove(id));
   }
 }
 
@@ -200,13 +200,13 @@ export default {
       univerInstance: null, // Univer核心实例
       univerAPIInstance: null, // Univer API实例
       isTableInitialized: false, // 表格是否初始化完成
-      pendingUpdates: 0, // 待处理更新计数（防止并发冲突）
+      pendingDataSync: 0, // 待处理数据同步计数（防止并发冲突）
       headerPermissionId: null, // 表头权限ID
       headerRuleId: null, // 表头规则ID
       sheetName: 'Sheet', // 工作表名称
       currentTableColumns: [], // 当前表格列配置（内部维护）
       currentTableData: [], // 当前表格数据（内部维护）
-      disposableManager: new DisposableManager(), // 资源管理器实例
+      resourceManager: new ResourceManager(), // 资源管理器实例
       isEditing: false, // 是否处于编辑状态
       hasActiveRangeBeenSet: false, // 是否已设置激活范围
       updatingCells: [], // 正在更新的单元格数组
@@ -223,7 +223,7 @@ export default {
     // 组件卸载前销毁所有资源
     this.univerInstance?.dispose();
     this.univerAPIInstance?.dispose();
-    this.disposableManager?.disposeAll();
+    this.resourceManager?.releaseAll();
   },
   watch: {
     // 深度监听配置变化，更新表格配置
@@ -305,7 +305,7 @@ export default {
         // 根据配置选择创建工作表的方式
         if (!this.isAsyncEnabled) {
           // 同步方式：预生成完整数据
-          const sheetData = this.generateFullSheetData();
+          const sheetData = this.generateSyncTableData();
           univerAPIInstance.createWorkbook({
             sheets: {
               [sheetData.id]: sheetData
@@ -372,7 +372,7 @@ export default {
         {
           id: 'sheetValueChangedDisposable',
           eventType: this.univerAPIInstance.Event.SheetValueChanged,
-          handler: this.handleSheetValueChanged
+          handler: this.handleCellValueChanged
         },
         {
           id: 'sheetSkeletonChangedDisposable',
@@ -428,7 +428,7 @@ export default {
 
       // 批量注册事件
       events.forEach(({ id, eventType, handler }) => {
-        this.disposableManager.add(id,
+        this.resourceManager.add(id,
           this.univerAPIInstance.addEvent(eventType, handler.bind(this))
         );
       });
@@ -492,7 +492,7 @@ export default {
         event.preventDefault();
         event.stopPropagation();
 
-        this.withPendingUpdate(async () => {
+        this.withPendingDataSync(async () => {
           try {
             const worksheet = this.getActiveWorksheet();
             const { row, column } = targetCell;
@@ -512,7 +512,7 @@ export default {
               this.editingCell.currentValue = newValue;
             }
 
-            this.handleSheetValueChanged({
+            this.handleCellValueChanged({
               effectedRanges: [cellRange]
             });
           } catch (error) {
@@ -541,7 +541,7 @@ export default {
       // 绑定事件并注册销毁
       sheetContainer.addEventListener('wheel', handleWheelCapture, true);
       sheetContainer.addEventListener('wheel', handleWheelBubble);
-      this.disposableManager.add('wheelEventListenerDisposable', {
+      this.resourceManager.add('wheelEventListenerDisposable', {
         dispose: () => {
           sheetContainer.removeEventListener('wheel', handleWheelCapture, true);
           sheetContainer.removeEventListener('wheel', handleWheelBubble);
@@ -557,7 +557,7 @@ export default {
     handleLifeCycleChanged({ stage }) {
       if (stage !== this.univerAPIInstance.Enum.LifecycleStages.Rendered) return;
 
-      this.withPendingUpdate(async () => {
+      this.withPendingDataSync(async () => {
         try {
           const worksheet = this.getActiveWorksheet();
 
@@ -604,8 +604,8 @@ export default {
      * 处理单元格值变化
      * 同步内部数据并触发外部更新事件
      */
-    handleSheetValueChanged({ effectedRanges }) {
-      if (this.pendingUpdates || !this.isTableInitialized || !effectedRanges.length) return;
+    handleCellValueChanged({ effectedRanges }) {
+      if (this.pendingDataSync || !this.isTableInitialized || !effectedRanges.length) return;
 
       try {
         const range = effectedRanges[0];
@@ -647,7 +647,7 @@ export default {
      * 处理表格结构变化（插入/删除行）
      */
     handleSheetSkeletonChanged({ payload }) {
-      if (this.pendingUpdates) return;
+      if (this.pendingDataSync) return;
 
       switch (payload.id) {
         case this.univerAPIInstance.Enum.SheetSkeletonChangeType.INSERT_ROW:
@@ -738,7 +738,7 @@ export default {
      * 处理命令执行前事件（拦截非法操作）
      */
     handleBeforeCommandExecute(event) {
-      if (this.pendingUpdates) return;
+      if (this.pendingDataSync) return;
 
       const { params, id } = event;
       switch (id) {
@@ -944,7 +944,7 @@ export default {
     /**
      * 生成完整的工作表数据（同步方式使用）
      */
-    generateFullSheetData() {
+    generateSyncTableData() {
       // 1. 生成表头数据和合并信息
       const { headerRows, mergeInfos } = this.generateHeaderRows(this.currentTableColumns);
       const totalRows = this.headerRowCount + this.currentTableData.length;
@@ -1296,7 +1296,7 @@ export default {
      * 行插入方法
      */
     insertRow(index, rowData) {
-      this.withPendingUpdate(() => {
+      this.withPendingDataSync(() => {
         // 参数校验
         if (index < -1 || index >= this.currentTableData.length) {
           this.handleError(`插入行失败：索引${index}超出范围`);
@@ -1340,7 +1340,7 @@ export default {
      * 更新指定索引行数据
      */
     updateRow(index, rowData, mergeWithExisting = true) {
-      this.withPendingUpdate(() => {
+      this.withPendingDataSync(() => {
         // 参数校验
         if (index < 0 || index >= this.currentTableData.length) {
           this.handleError(`更新行失败：索引${index}超出范围`);
@@ -1384,7 +1384,7 @@ export default {
      * 删除指定索引的行
      */
     deleteRow(index) {
-      this.withPendingUpdate(() => {
+      this.withPendingDataSync(() => {
         // 参数校验
         if (index < 0 || index >= this.currentTableData.length) {
           this.handleError(`删除行失败：索引${index}超出范围`);
@@ -1929,15 +1929,15 @@ export default {
     },
 
     /**
-     * 自动处理pendingUpdates计数
+     * 自动处理pendingDataSync计数
      * 包裹需要加锁的操作，防止并发冲突
      */
-    async withPendingUpdate(handler) {
-      this.pendingUpdates++;
+    async withPendingDataSync(handler) {
+      this.pendingDataSync++;
       try {
         await handler();
       } finally {
-        this.pendingUpdates--;
+        this.pendingDataSync--;
       }
     },
 
@@ -2358,6 +2358,95 @@ export default {
      */
     getTableColumnCount() {
       return this.flatColumns.length;
+    },
+
+    /**
+     * 导出表格数据为JSON格式
+     * @param {string} filename - 导出的文件名
+     */
+    exportToJson(filename) {
+      this.syncCurrentTableData();
+      try {
+        // 转换数据为JSON字符串
+        const jsonStr = JSON.stringify(this.currentTableData, null, 2);
+        // 创建Blob对象
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        // 创建下载链接并触发下载
+        this.downloadFile(blob, filename);
+        return true;
+      } catch (error) {
+        this.handleError('导出JSON失败', error);
+        return false;
+      }
+    },
+
+    /**
+     * 导出表格数据为CSV格式
+     * @param {string} filename - 导出的文件名
+     */
+    exportToCsv(filename) {
+      this.syncCurrentTableData();
+      try {
+        if (this.currentTableData.length === 0) {
+          console.warn('没有数据可导出');
+          return false;
+        }
+
+        // 获取表头（使用扁平化的列配置）
+        const headers = this.flatColumns.map(col => col.label || col.prop);
+        const headerRow = headers.map(header => this.escapeCsv(header)).join(',');
+
+        // 处理数据行
+        const dataRows = this.currentTableData.map(row => {
+          return this.flatColumns.map(col => {
+            const value = row[col.prop];
+            return this.escapeCsv(value !== undefined && value !== null ? String(value) : '');
+          }).join(',');
+        });
+
+        // 组合CSV内容
+        const csvContent = [headerRow, ...dataRows].join('\n');
+        
+        // 创建Blob对象，添加BOM以支持UTF-8编码
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        
+        // 创建下载链接并触发下载
+        this.downloadFile(blob, filename);
+        return true;
+      } catch (error) {
+        this.handleError('导出CSV失败', error);
+        return false;
+      }
+    },
+
+    /**
+     * 辅助方法：处理CSV中的特殊字符
+     */
+    escapeCsv(value) {
+      if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        // 如果值包含逗号、引号或换行符，需要用引号包裹并转义内部引号
+        return '"' + value.replace(/"/g, '""') + '"';
+      }
+      return value;
+    },
+
+    /**
+     * 辅助方法：创建下载链接并触发下载
+     */
+    downloadFile(blob, filename) {
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // 释放URL对象
+      URL.revokeObjectURL(url);
     },
   }
 };

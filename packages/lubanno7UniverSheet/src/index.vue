@@ -4,7 +4,7 @@
     ref="lubanno7UniverSheetCoreRef"
     :columns="columns"
     :data="data"
-    :config="mergedConfig"
+    :config="generatedConfig"
     @updateData="(params) => emitEvent('updateData', params)"
     @tableInitialized="handleTableInitialized"
     @insertRow="(params) => emitEvent('insertRow', params)"
@@ -70,18 +70,34 @@ export default {
     }
   },
   computed: {
-    // 合并默认配置和用户配置
-    mergedConfig() {
-      return deepMerge(this.defaultConfig, this.config);
+    // 生成合并后的配置
+    generatedConfig() {
+      return this.generateConfig(this.config);
     }
   },
   data() {
     return {
       isComponentAlive: true,
       isTableInitialized: false,
-      exposed: this.createInitialExposed(),
-      // 默认配置集中管理
-      defaultConfig: {
+      exposed: this.createInitialExposed()
+    }
+  },
+  methods: {
+    // 创建初始的exposed对象
+    createInitialExposed() {
+      return {
+        attributes: {
+          generatedConfig: this.generatedConfig
+        },
+        methods: {
+          recreateTable: this.recreateTable
+        }
+      };
+    },
+
+    // 生成合并后的配置
+    generateConfig(config) {
+      const defaultConfig = {
         locale: 'zh-CN',
         darkMode: false,
         autoRefreshOnPropChange: false,
@@ -156,12 +172,7 @@ export default {
           horizontalAlign: 'left', // 可选值：left, center, right
           verticalAlign: 'middle', // 可选值：top, middle, bottom
           wrapStrategy: 'overflow', // 可选值：wrap, overflow, clip
-          padding: {
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 8
-          },
+          padding: null,
           color: '#000',
           fontSize: 12,
           fontWeight: 'normal',
@@ -175,41 +186,80 @@ export default {
           }
         },
         headerStyle: {
-          headerRowHeight: 20,
-          backgroundColor: '#cfe2f3',
-          color: '#000',
-          fontSize: 12,
-          fontWeight: 'normal'
+          headerRowHeight: null,
+          backgroundColor: null,
+          color: null,
+          fontSize: null,
+          fontWeight: null
         },
         readonlyCellStyle: {
-          backgroundColor: '#eee',
-          color: '#000',
-          fontWeight: 'normal'
+          backgroundColor: null,
+          color: null,
+          fontWeight: null
         },
         selectCellStyle: {
-          backgroundColor: '#fff',
-          color: '#000',
-          fontWeight: 'normal'
+          backgroundColor: null,
+          color: null,
+          fontWeight: null
         },
         checkboxCellStyle: {
-          backgroundColor: '#fff',
-          color: '#0078d4',
-          fontWeight: 'normal'
+          backgroundColor: null,
+          color: null,
+          fontWeight: null
         }
       }
-    }
-  },
-  methods: {
-    // 创建初始的exposed对象
-    createInitialExposed() {
-      return {
-        attributes: {
-          defaultConfig: this.defaultConfig
-        },
-        methods: {
-          recreateTable: this.recreateTable
-        }
-      };
+      const mergedConfig = deepMerge(defaultConfig, config);
+      if(mergedConfig.commonStyle.padding === null) {
+        mergedConfig.commonStyle.padding = {
+          top: 0,
+          right: mergedConfig.commonStyle.horizontalAlign === 'right' ? 8 : 0,
+          bottom: 0,
+          left: mergedConfig.commonStyle.horizontalAlign === 'left' || mergedConfig.commonStyle.horizontalAlign === 'center' ? 8 : 0
+        };
+      }
+      if(mergedConfig.headerStyle.headerRowHeight === null) {
+        mergedConfig.headerStyle.headerRowHeight = mergedConfig.commonStyle.defaultRowHeight;
+      }
+      if(mergedConfig.headerStyle.backgroundColor === null) {
+        mergedConfig.headerStyle.backgroundColor = mergedConfig.commonStyle.backgroundColor;
+      }
+      if(mergedConfig.headerStyle.color === null) {
+        mergedConfig.headerStyle.color = mergedConfig.commonStyle.color;
+      }
+      if(mergedConfig.headerStyle.fontSize === null) {
+        mergedConfig.headerStyle.fontSize = mergedConfig.commonStyle.fontSize;
+      }
+      if(mergedConfig.headerStyle.fontWeight === null) {
+        mergedConfig.headerStyle.fontWeight = mergedConfig.commonStyle.fontWeight;
+      }
+      if(mergedConfig.readonlyCellStyle.backgroundColor === null) {
+        mergedConfig.readonlyCellStyle.backgroundColor = mergedConfig.commonStyle.backgroundColor;
+      }
+      if(mergedConfig.readonlyCellStyle.color === null) {
+        mergedConfig.readonlyCellStyle.color = mergedConfig.commonStyle.color;
+      }
+      if(mergedConfig.readonlyCellStyle.fontWeight === null) {
+        mergedConfig.readonlyCellStyle.fontWeight = mergedConfig.commonStyle.fontWeight;
+      }
+      if(mergedConfig.selectCellStyle.backgroundColor === null) {
+        mergedConfig.selectCellStyle.backgroundColor = mergedConfig.commonStyle.backgroundColor;
+      }
+      if(mergedConfig.selectCellStyle.color === null) {
+        mergedConfig.selectCellStyle.color = mergedConfig.commonStyle.color;
+      }
+      if(mergedConfig.selectCellStyle.fontWeight === null) {
+        mergedConfig.selectCellStyle.fontWeight = mergedConfig.commonStyle.fontWeight;
+      }
+      if(mergedConfig.checkboxCellStyle.backgroundColor === null) {
+        mergedConfig.checkboxCellStyle.backgroundColor = mergedConfig.commonStyle.backgroundColor;
+      }
+      if(mergedConfig.checkboxCellStyle.color === null) {
+        mergedConfig.checkboxCellStyle.color = mergedConfig.commonStyle.color;
+      }
+      if(mergedConfig.checkboxCellStyle.fontWeight === null) {
+        mergedConfig.checkboxCellStyle.fontWeight = mergedConfig.commonStyle.fontWeight;
+      }
+      return mergedConfig
     },
     
     recreateTable() {
@@ -242,7 +292,7 @@ export default {
       // 更新exposed对象，添加核心实例和方法
       this.exposed = {
         attributes: {
-          defaultConfig: this.defaultConfig,
+          generatedConfig: this.generatedConfig,
           univerInstance: coreRef.univerInstance,
           univerAPIInstance: coreRef.univerAPIInstance
         },
@@ -267,6 +317,8 @@ export default {
           getRowByFilterAll: coreRef.getRowByFilterAll,
           getRowIndexByFilter: coreRef.getRowIndexByFilter,
           getRowIndexByFilterAll: coreRef.getRowIndexByFilterAll,
+          exportToJson: coreRef.exportToJson,
+          exportToCsv: coreRef.exportToCsv
         }
       };
       
@@ -278,7 +330,7 @@ export default {
     // 监听列配置变化
     columns: {
       handler: function() {
-        if (!this.mergedConfig.autoRefreshOnPropChange) return;
+        if (!this.generatedConfig.autoRefreshOnPropChange) return;
         this.recreateTable();
       },
       deep: true,
@@ -287,7 +339,7 @@ export default {
     // 监听数据变化
     data: {
       handler: function() {
-        if (!this.mergedConfig.autoRefreshOnPropChange) return;
+        if (!this.generatedConfig.autoRefreshOnPropChange) return;
         this.recreateTable();
       },
       deep: true,

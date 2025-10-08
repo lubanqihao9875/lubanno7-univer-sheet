@@ -18,6 +18,8 @@ export default defineConfig({
       // 输出文件名
       fileName: (format) => `index.es.js`,
     },
+    // 目标环境
+    target: 'es2015',
     // 禁用压缩
     minify: false,
     // 配置外部依赖，避免打包进库文件

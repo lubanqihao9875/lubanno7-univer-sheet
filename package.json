@@ -1,6 +1,6 @@
 {
   "name": "lubanno7-univer-sheet",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "基于Univer的表格组件，支持嵌套表头、单元格编辑、数据双向绑定",
   "keywords": [
     "univer",
@@ -30,7 +30,7 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@univerjs/preset-sheets-core": "0.10.3",
     "@univerjs/preset-sheets-data-validation": "0.10.3",
     "@univerjs/preset-sheets-filter": "0.10.3",

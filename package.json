@@ -1,0 +1,60 @@
+{
+  "name": "lubanno7-univer-sheet",
+  "version": "1.0.0",
+  "description": "基于Univer的表格组件，支持嵌套表头、单元格编辑、数据双向绑定",
+  "keywords": [
+    "univer",
+    "table",
+    "component"
+  ],
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lubanqihao9875/lubanno7-univer-sheet"
+  },
+  "homepage": "https://lubanqihao9875.github.io/lubanno7-univer-sheet-docs/",
+  "module": "lib/index.es.js",
+  "files": [
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:lib": "vite build --config vite.lib.config.js",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@univerjs/preset-sheets-core": "0.10.3",
+    "@univerjs/preset-sheets-data-validation": "0.10.3",
+    "@univerjs/preset-sheets-filter": "0.10.3",
+    "@univerjs/preset-sheets-find-replace": "0.10.3",
+    "@univerjs/preset-sheets-sort": "0.10.3",
+    "@univerjs/presets": "0.10.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.3",
+    "antd": "5.21.6",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.4.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^6.27.0",
+    "vite": "^7.1.7"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
+}

@@ -167,7 +167,7 @@ const tableInstance = new Lubanno7UniverSheet(container, {
 });
 
 // 监听表格初始化完成事件
- tableInstance.on('tableInitialized', () => {
+tableInstance.on('tableInitialized', () => {
   console.log('表格已渲染完成');
 });
 

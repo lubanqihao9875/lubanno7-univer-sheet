@@ -1,0 +1,269 @@
+/* 容器整体样式 */
+.welcome-container {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* 卡片头部样式 */
+.card-header {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* 各卡片通用间距与阴影 */
+.welcome-card,
+.environment-card,
+.commands-card,
+.import-card,
+.develop-card,
+.demo-card {
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 卡片内容区域内边距 */
+.welcome-content,
+.environment-content,
+.commands-content,
+.import-content,
+.develop-content {
+  padding: 20px;
+}
+
+/* 文本通用样式 */
+.welcome-content p,
+.environment-content p,
+.commands-content p,
+.import-content p,
+.develop-content p {
+  line-height: 1.8;
+  color: #606266;
+  margin-bottom: 10px;
+}
+
+/* 环境标签样式 */
+.environment-tag {
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+
+/* 命令组样式 */
+.command-group {
+  margin-bottom: 20px;
+}
+
+.command-group:last-child {
+  margin-bottom: 0;
+}
+
+.command-group h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #303133;
+}
+
+/* 命令代码样式 */
+.command-code {
+  display: inline-block;
+  background-color: #f5f7fa;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  margin-bottom: 5px;
+  color: #e96900;
+}
+
+.command-desc {
+  margin: 5px 0 0 0 !important;
+  font-size: 14px;
+  color: #909399;
+}
+
+/* 导入步骤容器 */
+.import-steps {
+  margin-top: 20px;
+}
+
+/* 自定义步骤条样式 */
+.step-container {
+  width: 100%;
+}
+
+.step-item {
+  display: flex;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+/* 步骤条连接线 */
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 40px;
+  width: 2px;
+  height: calc(100% + 20px);
+  background-color: #e4e7ed;
+  z-index: 0;
+}
+
+/* 步骤序号样式 */
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #1890ff;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  margin-right: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.step-content {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.step-content h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #303133;
+}
+
+.step-content code {
+  display: inline-block;
+  background-color: #f5f7fa;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  color: #e96900;
+  margin-bottom: 10px;
+}
+
+/* 代码块样式 */
+.step-content pre {
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  padding: 15px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+}
+
+.step-content pre code {
+  background: none;
+  padding: 0;
+  margin: 0;
+  display: block;
+}
+
+.step-content ol {
+  padding-left: 20px;
+  margin: 10px 0;
+}
+
+.step-content ol li {
+  line-height: 1.8;
+  color: #606266;
+  margin-bottom: 5px;
+}
+
+/* 文件路径标签 */
+.file-path {
+  background-color: #ecf5ff;
+  color: #409eff;
+  border-color: #c6e2ff;
+  margin-bottom: 10px;
+}
+
+/* 开发指南章节样式 */
+.develop-section {
+  margin-bottom: 20px;
+}
+
+.develop-section:last-child {
+  margin-bottom: 0;
+}
+
+.develop-section h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #303133;
+}
+
+.develop-section code {
+  display: inline-block;
+  background-color: #f5f7fa;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  color: #e96900;
+  margin-bottom: 10px;
+}
+
+/* 时间线样式 */
+.ant-timeline {
+  padding-left: 0;
+}
+
+.ant-timeline-item {
+  padding-bottom: 15px;
+}
+
+.ant-timeline-item-head {
+  background-color: #1890ff !important;
+}
+
+.ant-timeline-item-content {
+  font-size: 14px;
+  color: #606266;
+}
+
+/* 表格演示容器 */
+.demo-container {
+  width: 100%;
+}
+
+/* 引入方式章节样式 */
+.import-method {
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.import-method:last-child {
+  margin-bottom: 0;
+}
+
+.import-method h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #303133;
+  font-size: 16px;
+}
+
+.local-import-content {
+  padding-left: 10px;
+}
+
+.local-import-content ol {
+  margin: 10px 0;
+}
+
+.local-import-content li {
+  line-height: 1.8;
+  color: #606266;
+  margin-bottom: 5px;
+}

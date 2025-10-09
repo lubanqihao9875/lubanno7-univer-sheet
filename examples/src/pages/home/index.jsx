@@ -126,7 +126,7 @@ const Home = () => {
                     <pre>
                       <code>{`import React from 'react';
 import Lubanno7UniverSheet from 'lubanno7-univer-sheet';
-import 'lubanno7-univer-sheet/lib/index.css';
+import 'lubanno7-univer-sheet/lib/lubanno7-univer-sheet.css';
 
 // 函数式组件中使用
 const YourComponent = () => {
@@ -172,15 +172,15 @@ export default YourComponent;`}</code>
             <div className="local-import-content">
               <p>如果需要在本地项目中测试修改后的组件，可以直接复制构建后的文件到目标项目：</p>
               <ol>
-                <li>复制 lib/index.umd.js 到目标项目</li>
-                <li>复制 lib/index.css 到目标项目</li>
+                <li>复制 lib/index.es.js 到目标项目</li>
+                <li>复制 lib/lubanno7-univer-sheet.css 到目标项目</li>
                 <li>在目标项目中引入这些文件（示例如下）：</li>
               </ol>
               <div className="step-content">
                 <pre>
                   <code>{`// 引入本地 JS 和 CSS
-import Lubanno7UniverSheet from './path/to/lib/index.umd.js';
-import './path/to/lib/index.css';
+import Lubanno7UniverSheet from './path/to/lib/index.es.js';
+import './path/to/lib/lubanno7-univer-sheet.css';
 
 const YourComponent = () => {
   const containerRef = useRef(null);

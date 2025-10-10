@@ -8,7 +8,7 @@ const App = () => {
   return (
     <Layout className="app-container">
       <Header className="app-header">
-        <h1 className="app-title">Lubanno7 Univer Sheet</h1>
+        <h1 className="app-title">Lubanno7UniverSheet</h1>
       </Header>
       <Content className="app-main">
         <Outlet />

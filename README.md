@@ -2,6 +2,14 @@
 
 基于 Univer 构建的高性能电子表格通用组件
 
+## 🔗 项目链接
+- [GitHub 仓库](https://github.com/lubanqihao9875/lubanno7-univer-sheet) - 源码仓库
+- [npm 包](https://www.npmjs.com/package/lubanno7-univer-sheet) - 官方包
+- [在线文档](https://lubanqihao9875.github.io/lubanno7-univer-sheet-docs/) - 使用说明
+- [在线演示](https://lubanqihao9875.github.io/lubanno7-univer-sheet-demo/) - 交互式功能展示
+- [文档仓库](https://github.com/lubanqihao9875/lubanno7-univer-sheet-docs) - 文档源码
+- [演示仓库](https://github.com/lubanqihao9875/lubanno7-univer-sheet-demo) - 演示项目源码
+
 ## 🚀 特性
 - **高性能**：基于Univer引擎，提供高性能的表格渲染和操作体验
 - **功能丰富**：支持数据验证、排序、筛选、查找替换等多种功能
@@ -131,27 +139,22 @@ onUnmounted(() => {
 
 #### JS 中使用
 ```javascript
-// 引入组件
 import Lubanno7UniverSheet from 'lubanno7-univer-sheet';
 import 'lubanno7-univer-sheet/lib/lubanno7-univer-sheet.css';
 
-// 获取容器元素
 const container = document.getElementById('table-container');
 
-// 定义列配置
 const columns = [
   { prop: 'name', label: '姓名', width: 120 },
   { prop: 'age', label: '年龄', width: 80 },
   { prop: 'address', label: '地址', width: 200 }
 ];
 
-// 定义表格数据
 const data = [
   { name: '张三', age: 25, address: '北京市' },
   { name: '李四', age: 30, address: '上海市' }
 ];
 
-// 定义配置选项
 const config = {
   styleOptions: {
     width: '100%',
@@ -177,18 +180,10 @@ window.addEventListener('beforeunload', () => {
 })
 ```
 
-## 📚 文档
-详细文档请访问：[Lubanno7 Univer Sheet 文档](https://lubanqihao9875.github.io/lubanno7-univer-sheet-docs/)
-
-文档中包含：
-- 完整的 API 参考
-- 详细的配置选项说明
-- 高级功能使用指南
-
-## 💡 提示
-- 支持嵌套表头、单元格编辑、数据双向绑定
-- 提供细粒度权限控制和异步分批次加载优化
-- 对外暴露完整实例与生命周期钩子
-
 ## 📄 许可证
 [MIT License](https://github.com/lubanqihao9875/lubanno7-univer-sheet-docs/blob/main/LICENSE)
+
+## 👨‍💻 关于作者
+作者GitHub: [lubanqihao9875](https://github.com/lubanqihao9875)
+
+如果觉得这个项目不错，欢迎给我点个小星星⭐️，你的支持是我继续开发的动力

@@ -551,7 +551,6 @@ export default class Lubanno7UniverSheetCore {
     // 清理事件监听器
     this.eventListeners = {};
     
-    
     this.container = null;
     
     this.univerInstance = null;

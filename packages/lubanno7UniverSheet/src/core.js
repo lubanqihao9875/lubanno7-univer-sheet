@@ -764,6 +764,9 @@ export default class Lubanno7UniverSheetCore {
       case 'sheet.operation.set-activate-cell-edit':
         this.handleSetActivateCellEdit(params, event);
         break;
+      case 'sheet.operation.set-cell-edit-visible':
+        this.handleSetCellEditVisible(event);
+        break;
       case 'sheet.command.add-worksheet-merge':
       case 'sheet.command.remove-worksheet-merge':
         this.handleMergeCellCommand(id, event);
@@ -893,6 +896,19 @@ export default class Lubanno7UniverSheetCore {
     }
     // 禁止只读单元格编辑
     if (this.isCellReadonly(startRow, startColumn)) {
+      event.cancel = true;
+    }
+  }
+
+  /** 处理单元格编辑可见性变化（禁止表头编辑可见性变化、只读单元格编辑可见性变化） */
+  handleSetCellEditVisible(event) {
+    const { row, column } = this.selectedCell
+    // 禁止表头编辑可见性变化
+    if (row === -1 || column === -1) {
+      event.cancel = true;
+    }
+    // 禁止只读单元格编辑可见性变化
+    if (this.isCellReadonly(row, column)) {
       event.cancel = true;
     }
   }

@@ -776,6 +776,13 @@ export default class Lubanno7UniverSheetCore {
         break;
       case 'sheet.command.clear-selection-content':
         this.handleClearSelectionContentCommand(event);
+        break;
+      case 'sheet.command.move-rows':
+        this.handleMoveRowsCommand(params, event);
+        break;
+      case 'sheet.command.move-cols':
+        this.handleMoveColsCommand(event);
+        break;
     }
   }
 
@@ -892,11 +899,13 @@ export default class Lubanno7UniverSheetCore {
     // 禁止表头编辑
     if (startRow < this.headerRowCount) {
       event.cancel = true;
+      this.emit('forbiddenAction', { type: 'editHeaderForbidden' });
       return;
     }
     // 禁止只读单元格编辑
     if (this.isCellReadonly(startRow, startColumn)) {
       event.cancel = true;
+      this.emit('forbiddenAction', { type: 'editReadonlyCellForbidden' });
     }
   }
 
@@ -963,6 +972,33 @@ export default class Lubanno7UniverSheetCore {
     if (this.isCellReadonly(row, column)) {
       event.cancel = true;
       this.emit('forbiddenAction', { type: 'clearReadonlyCellContentForbidden' });
+    }
+  }
+
+  /** 处理移动行命令 (禁止移动表头行) */
+  handleMoveRowsCommand(params, event) {
+    const { fromRange, toRange } = params;
+
+    // 禁止移动表头行
+    if (fromRange.startRow < this.headerRowCount) {
+      event.cancel = true;
+      this.emit('forbiddenAction', { type: 'moveFromHeaderRowForbidden' });
+      return;
+    }
+
+    // 禁止移动到表头区域
+    if (toRange.startRow < this.headerRowCount) {
+      event.cancel = true;
+      this.emit('forbiddenAction', { type: 'moveToHeaderRowForbidden' });
+      return;
+    }
+  }
+
+  /** 处理移动列命令 (禁止移动列操作) */
+  handleMoveColsCommand(event) {
+    if (this.isTableInitialized) {
+      event.cancel = true;
+      this.emit('forbiddenAction', { type: 'moveColsForbidden' });
     }
   }
 

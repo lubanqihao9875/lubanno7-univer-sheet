@@ -2055,6 +2055,9 @@ export default class Lubanno7UniverSheetCore {
     }
   }
 
+  /**
+   * 更新加载遮罩和空数据遮罩的可见性
+   */
   updateMaskVisibility() {
     this.emit('maskVisibilityUpdate', {
       shouldShowLoading: this.shouldShowLoading,

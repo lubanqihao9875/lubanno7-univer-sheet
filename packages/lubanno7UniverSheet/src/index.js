@@ -154,13 +154,17 @@ export default class Lubanno7UniverSheet {
     // 创建加载遮罩
     this.loadingMask = document.createElement('div');
     this.loadingMask.className = 'custom-loading-mask';
+    
+    // 使用配置的loading选项
+    const loadingOptions = this.config.loadingOptions || {};
+    
     this.loadingMask.style.cssText = `
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(255, 255, 255, 0.8);
+      background-color: ${loadingOptions.maskBackgroundColor};
       display: flex;
       align-items: center;
       justify-content: center;
@@ -173,25 +177,28 @@ export default class Lubanno7UniverSheet {
     
     const loadingSpinner = document.createElement('div');
     loadingSpinner.style.cssText = `
-      width: 40px;
-      height: 40px;
-      border: 4px solid #f3f3f3;
+      width: ${loadingOptions.spinnerSize}px;
+      height: ${loadingOptions.spinnerSize}px;
+      border: ${loadingOptions.spinnerCircleThickness}px solid ${loadingOptions.spinnerCircleColor};
       border-radius: 50%;
-      border-top-color: #3498db;
-      animation: spin 1s linear infinite;
+      border-top-color: ${loadingOptions.spinnerCircleHighlightColor};
+      animation: spin ${loadingOptions.spinnerAnimationDuration} linear infinite;
       margin: 0 auto 10px;
     `;
     
     const loadingText = document.createElement('div');
-    loadingText.textContent = this.config.loadingMessage;
+    loadingText.textContent = loadingOptions.text;
     loadingText.style.cssText = `
-      color: #333333;
-      font-size: 14px;
+      color: ${loadingOptions.textColor};
+      font-size: ${loadingOptions.fontSize}px;
     `;
     
     loadingContent.appendChild(loadingSpinner);
     loadingContent.appendChild(loadingText);
     this.loadingMask.appendChild(loadingContent);
+    
+    // 使用配置的emptyData选项
+    const emptyDataOptions = this.config.emptyDataOptions || {};
     
     // 创建空数据遮罩
     this.emptyDataMask = document.createElement('div');
@@ -202,7 +209,7 @@ export default class Lubanno7UniverSheet {
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(255, 255, 255, 0.9);
+      background-color: ${emptyDataOptions.maskBackgroundColor};
       display: none;
       align-items: center;
       justify-content: center;
@@ -211,13 +218,13 @@ export default class Lubanno7UniverSheet {
     `;
     
     const emptyDataContent = document.createElement('div');
-    emptyDataContent.style.cssText = 'text-align: center; padding: 40px;';
+    emptyDataContent.style.cssText = `text-align: center;`;
     
     const emptyDataText = document.createElement('div');
-    emptyDataText.textContent = this.config.emptyDataText;
+    emptyDataText.textContent = emptyDataOptions.text;
     emptyDataText.style.cssText = `
-      color: #666666;
-      font-size: 16px;
+      color: ${emptyDataOptions.textColor};
+      font-size: ${emptyDataOptions.fontSize}px;
     `;
     
     emptyDataContent.appendChild(emptyDataText);
@@ -282,7 +289,17 @@ export default class Lubanno7UniverSheet {
     const defaultConfig = {
       locale: 'zh-CN',
       darkMode: false,
-      loadingMessage: '数据加载中...',
+      loadingOptions: {
+        text: '数据加载中...',
+        maskBackgroundColor: 'rgba(255, 255, 255, 0.8)',
+        spinnerSize: 40,
+        spinnerCircleThickness: 4,
+        spinnerCircleColor: '#f3f3f3',
+        spinnerCircleHighlightColor: '#3498db',
+        spinnerAnimationDuration: '1s',
+        textColor: '#333333',
+        fontSize: 14
+      },
       theme: 'defaultTheme', // 可选值：defaultTheme, greenTheme
       headerOptions: {
         show: true,          // 是否展示整个头部
@@ -305,7 +322,12 @@ export default class Lubanno7UniverSheet {
         checkedValue: 1,
         uncheckedValue: 0
       },
-      emptyDataText: '暂无数据',
+      emptyDataOptions: {
+        text: '暂无数据',
+        maskBackgroundColor: 'rgba(255, 255, 255, 0.9)',
+        textColor: '#666666',
+        fontSize: 16
+      },
       asyncOptions: {
         isAsyncEnabled: false,
         baseBatchSize: 500,

@@ -1,6 +1,6 @@
 {
   "name": "lubanno7-univer-sheet",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "基于Univer的表格组件，支持嵌套表头、单元格编辑、数据双向绑定",
   "keywords": [
     "univer",

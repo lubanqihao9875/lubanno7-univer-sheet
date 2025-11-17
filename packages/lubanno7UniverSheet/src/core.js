@@ -70,6 +70,85 @@ class ResourceManager {
   }
 }
 
+/**
+ * 事件发射器
+ * 管理组件内所有事件监听与触发
+ */
+class EventEmitter {
+  constructor() {
+    // 事件监听器
+    this.eventListeners = {};
+  }
+
+  /**
+   * 监听事件
+   * @param {string} eventName - 事件名称
+   * @param {function} handler - 事件处理函数
+   * @param {boolean} isInternal - 是否为内部事件监听器（默认false）
+   */
+  on(eventName, handler, isInternal = false) {
+    if (!this.eventListeners[eventName]) {
+      this.eventListeners[eventName] = [];
+    }
+    this.eventListeners[eventName].push({
+      handler,
+      isInternal
+    });
+  }
+
+  /**
+   * 移除事件监听器
+   * @param {string} eventName - 事件名称
+   * @param {function} handler - 事件处理函数（可选）
+   * @param {boolean} offInternal - 是否移除内部事件监听器（默认false）
+   */
+  off(eventName, handler, offInternal = false) {
+    if (!this.eventListeners[eventName]) return this;
+    
+    if (handler) {
+      // 移除指定的监听器。如果 offInternal 为 false，则保留所有内部监听器。
+      this.eventListeners[eventName] = this.eventListeners[eventName].filter(listener => 
+        (listener.isInternal && !offInternal) || (listener.handler !== handler)
+      );
+    } else {
+      if (offInternal) {
+        // 如果没有指定handler，但 offInternal 为 true，则移除所有监听器（包括内部的）
+        this.eventListeners[eventName] = [];
+      } else {
+        // 如果没有指定handler，且 offInternal 为 false，则只保留内部监听器
+        this.eventListeners[eventName] = this.eventListeners[eventName].filter(listener => 
+          listener.isInternal
+        );
+      }
+    }
+  }
+
+  /**
+   * 触发事件
+   * @param {string} eventName - 事件名称
+   * @param {any} data - 事件数据
+   * @param {boolean} onlyInternal - 是否只触发内部事件监听器（默认false）
+   */
+  emit(eventName, data, onlyInternal = false) {
+    if (!this.eventListeners[eventName]) return this;
+    
+    let listenersToEmit = this.eventListeners[eventName];
+    
+    // 如果 onlyInternal 为 true，则只筛选出内部监听器
+    if (onlyInternal) {
+      listenersToEmit = listenersToEmit.filter(listener => listener.isInternal);
+    }
+    
+    listenersToEmit.forEach(listener => {
+      try {
+        listener.handler(data);
+      } catch (error) {
+        console.error(`触发事件 ${eventName} 失败:`, error);
+      }
+    });
+  }
+}
+
 export default class Lubanno7UniverSheetCore {
   /**
    * 构造函数
@@ -115,9 +194,7 @@ export default class Lubanno7UniverSheetCore {
     this.selectedCell = { row: -1, column: -1, isNumber: false }; // 当前选中单元格信息
     this.viewportScrollY = 0; // 当前视口滚动Y值
     this.isScrolling = false; // 表格是否正在滚动
-    
-    // 事件监听器
-    this.eventListeners = {};
+    this.eventEmitter = new EventEmitter(); // 事件发射器实例
     
     // 初始化表格
     this.initSheet();
@@ -603,7 +680,7 @@ export default class Lubanno7UniverSheetCore {
         // 初始化完成标记
         this.isTableInitialized = true;
         this.updateMaskVisibility();
-        this.emit('tableInitialized');
+        this.eventEmitter.emit('tableInitialized');
       } catch (error) {
         this.handleError('初始化表格数据失败', error);
       }
@@ -639,7 +716,7 @@ export default class Lubanno7UniverSheetCore {
       // 同步内部数据并触发外部事件
       const updatedRow = { ...changedRow, [changedColumn]: newValue };
       this.currentTableData[rowDataIndex] = updatedRow;
-      this.emit('updateData', {
+      this.eventEmitter.emit('updateData', {
         changedRow: updatedRow,
         changedRowIndex: rowDataIndex,
         changedColumn,
@@ -695,7 +772,7 @@ export default class Lubanno7UniverSheetCore {
     if (!clickedRow) return;
 
     // 触发外部点击事件
-    this.emit('cellClick', {
+    this.eventEmitter.emit('cellClick', {
       clickRow: { ...clickedRow },
       clickRowIndex: rowDataIndex,
       clickColumn: this.getColumnName(column),
@@ -793,7 +870,7 @@ export default class Lubanno7UniverSheetCore {
     const { startRow } = params.fromRange._range;
     if (startRow < this.headerRowCount) {
       params.cancel = true;
-      this.emit('forbiddenAction', { type: 'copyHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'copyHeaderForbidden' });
     }
   }
 
@@ -805,13 +882,13 @@ export default class Lubanno7UniverSheetCore {
 
     if (row === -1 || column === -1) {
       params.cancel = true;
-      this.emit('forbiddenAction', { type: 'pasteHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'pasteHeaderForbidden' });
       return;
     }
 
     if (this.isCellReadonly(row, column)) {
       params.cancel = true;
-      this.emit('forbiddenAction', { type: 'pasteReadonlyCellForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'pasteReadonlyCellForbidden' });
     }
   }
 
@@ -855,7 +932,7 @@ export default class Lubanno7UniverSheetCore {
   handleInsertRowCommand(params, event) {
     if (params.range.startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'insertRowInHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'insertRowInHeaderForbidden' });
     }
   }
 
@@ -863,7 +940,7 @@ export default class Lubanno7UniverSheetCore {
   handleRemoveRowCommand(params, event) {
     if (params.range.startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'deleteRowInHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'deleteRowInHeaderForbidden' });
     }
   }
 
@@ -874,21 +951,21 @@ export default class Lubanno7UniverSheetCore {
     // 禁止从表头开始填充
     if (sourceRange.startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'autoFillFromHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'autoFillFromHeaderForbidden' });
       return;
     }
 
     // 禁止填充到表头
     if (targetRange.startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'autoFillToHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'autoFillToHeaderForbidden' });
       return;
     }
 
     // 禁止包含只读单元格的填充
     if (this.hasReadOnlyCellInRange(sourceRange) || this.hasReadOnlyCellInRange(targetRange)) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'autoFillReadOnlyCellForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'autoFillReadOnlyCellForbidden' });
       return;
     }
   }
@@ -899,13 +976,13 @@ export default class Lubanno7UniverSheetCore {
     // 禁止表头编辑
     if (startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'editHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'editHeaderForbidden' });
       return;
     }
     // 禁止只读单元格编辑
     if (this.isCellReadonly(startRow, startColumn)) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'editReadonlyCellForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'editReadonlyCellForbidden' });
     }
   }
 
@@ -926,7 +1003,7 @@ export default class Lubanno7UniverSheetCore {
   handleMergeCellCommand(id, event) {
     if (this.isTableInitialized) {
       event.cancel = true;
-      this.emit('forbiddenAction', { 
+      this.eventEmitter.emit('forbiddenAction', { 
         type: id === 'sheet.command.add-worksheet-merge'
           ? 'mergeCellForbidden'
           : 'unmergeCellForbidden' 
@@ -941,21 +1018,21 @@ export default class Lubanno7UniverSheetCore {
     // 禁止移动表头行
     if (fromRange.startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'moveFromHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'moveFromHeaderForbidden' });
       return;
     }
 
     // 禁止移动到表头区域
     if (toRange.startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'moveToHeaderForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'moveToHeaderForbidden' });
       return;
     }
 
     // 禁止包含只读单元格的移动
     if (this.hasReadOnlyCellInRange(fromRange) || this.hasReadOnlyCellInRange(toRange)) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'moveReadOnlyCellForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'moveReadOnlyCellForbidden' });
     }
   }
 
@@ -965,13 +1042,13 @@ export default class Lubanno7UniverSheetCore {
 
     if (row === -1 || column === -1) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'clearHeaderContentForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'clearHeaderContentForbidden' });
       return;
     }
 
     if (this.isCellReadonly(row, column)) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'clearReadonlyCellContentForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'clearReadonlyCellContentForbidden' });
     }
   }
 
@@ -982,14 +1059,14 @@ export default class Lubanno7UniverSheetCore {
     // 禁止移动表头行
     if (fromRange.startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'moveFromHeaderRowForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'moveFromHeaderRowForbidden' });
       return;
     }
 
     // 禁止移动到表头区域
     if (toRange.startRow < this.headerRowCount) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'moveToHeaderRowForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'moveToHeaderRowForbidden' });
       return;
     }
   }
@@ -998,7 +1075,7 @@ export default class Lubanno7UniverSheetCore {
   handleMoveColsCommand(event) {
     if (this.isTableInitialized) {
       event.cancel = true;
-      this.emit('forbiddenAction', { type: 'moveColsForbidden' });
+      this.eventEmitter.emit('forbiddenAction', { type: 'moveColsForbidden' });
     }
   }
 
@@ -1298,7 +1375,7 @@ export default class Lubanno7UniverSheetCore {
     this.currentTableData.splice(insertStartIdx, 0, ...insertRows);
 
     // 触发外部事件
-    this.emit('insertRow', {
+    this.eventEmitter.emit('insertRow', {
       insertRows,
       insertRowStartIndex: insertStartIdx,
       insertRowEndIndex: insertEndIdx,
@@ -1327,7 +1404,7 @@ export default class Lubanno7UniverSheetCore {
     const deleteRows = this.currentTableData.splice(deleteStartIdx, deleteCount);
 
     // 触发外部事件
-    this.emit('deleteRow', {
+    this.eventEmitter.emit('deleteRow', {
       deleteRows,
       deleteRowStartIndex: deleteStartIdx,
       deleteRowEndIndex: deleteEndIdx,
@@ -1396,7 +1473,7 @@ export default class Lubanno7UniverSheetCore {
       // 同步内部数据并触发事件
       const newRow = { ...rowData };
       this.currentTableData.splice(insertIndex, 0, newRow);
-      this.emit('rowInserted', {
+      this.eventEmitter.emit('rowInserted', {
         insertedRows: [newRow],
         insertedRowStartIndex: insertIndex,
         insertedRowEndIndex: insertIndex,
@@ -1442,7 +1519,7 @@ export default class Lubanno7UniverSheetCore {
       this.applyRowEditor(worksheet, index, this.currentTableData[index]);
 
       // 触发外部事件
-      this.emit('rowUpdated', {
+      this.eventEmitter.emit('rowUpdated', {
         index,
         oldRow,
         newRow: { ...this.currentTableData[index] },
@@ -1473,7 +1550,7 @@ export default class Lubanno7UniverSheetCore {
 
       // 同步内部数据并触发事件
       const deletedRow = this.currentTableData.splice(index, 1)[0];
-      this.emit('deleteRow', {
+      this.eventEmitter.emit('deleteRow', {
         deleteRows: [deletedRow],
         deleteRowStartIndex: index,
         deleteRowEndIndex: index,
@@ -1905,78 +1982,6 @@ export default class Lubanno7UniverSheetCore {
     }
   }
 
-  // ========================== 事件系统 ==========================
-  /**
-   * 注册事件监听器
-   * @param {string} eventName - 事件名称
-   * @param {function} handler - 事件处理函数
-   * @param {boolean} isInternal - 是否为内部事件（默认false）
-   */
-  on(eventName, handler, isInternal = false) {
-    if (!this.eventListeners[eventName]) {
-      this.eventListeners[eventName] = [];
-    }
-    this.eventListeners[eventName].push({
-      handler,
-      isInternal
-    });
-    return this; // 支持链式调用
-  }
-
-  /**
-   * 移除事件监听器
-   * @param {string} eventName - 事件名称
-   * @param {function} handler - 事件处理函数（可选）
-   * @param {boolean} offInternal - 是否移除内部事件监听器（默认false）
-   */
-  off(eventName, handler, offInternal = false) {
-    if (!this.eventListeners[eventName]) return this;
-    
-    if (handler) {
-      // 移除指定的监听器。如果 offInternal 为 false，则保留所有内部监听器。
-      this.eventListeners[eventName] = this.eventListeners[eventName].filter(listener => 
-        (listener.isInternal && !offInternal) || (listener.handler !== handler)
-      );
-    } else {
-      if (offInternal) {
-        // 如果没有指定handler，但 offInternal 为 true，则移除所有监听器（包括内部的）
-        this.eventListeners[eventName] = [];
-      } else {
-        // 如果没有指定handler，且 offInternal 为 false，则只保留内部监听器
-        this.eventListeners[eventName] = this.eventListeners[eventName].filter(listener => 
-          listener.isInternal
-        );
-      }
-    }
-    return this;
-  }
-
-  /**
-   * 触发事件
-   * @param {string} eventName - 事件名称
-   * @param {any} data - 事件数据
-   * @param {boolean} onlyInternal - 是否只触发内部事件监听器（默认false）
-   */
-  emit(eventName, data, onlyInternal = false) {
-    if (!this.eventListeners[eventName]) return this;
-    
-    let listenersToEmit = this.eventListeners[eventName];
-    
-    // 如果 onlyInternal 为 true，则只筛选出内部监听器
-    if (onlyInternal) {
-      listenersToEmit = listenersToEmit.filter(listener => listener.isInternal);
-    }
-    
-    listenersToEmit.forEach(listener => {
-      try {
-        listener.handler(data);
-      } catch (error) {
-        console.error(`事件处理器执行失败 [${eventName}]:`, error);
-      }
-    });
-    return this;
-  }
-
   // ========================== 工具方法 ==========================
   /**
    * 获取当前激活的工作簿
@@ -2059,7 +2064,7 @@ export default class Lubanno7UniverSheetCore {
    * 更新加载遮罩和空数据遮罩的可见性
    */
   updateMaskVisibility() {
-    this.emit('maskVisibilityUpdate', {
+    this.eventEmitter.emit('maskVisibilityUpdate', {
       shouldShowLoading: this.shouldShowLoading,
       shouldShowEmpty: this.shouldShowEmpty,
     }, true);

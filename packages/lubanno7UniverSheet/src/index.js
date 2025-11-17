@@ -1,38 +1,5 @@
 import Lubanno7UniverSheetCore from './core.js';
 
-/**
- * 深度合并函数
- */
-function deepMerge(target, source) {
-  if (typeof target !== 'object' || target === null) {
-    target = {};
-  }
-  
-  if (typeof source !== 'object' || source === null) {
-    source = {};
-  }
-
-  const result = { ...target };
-
-  Object.keys(source).forEach(key => {
-    const targetValue = result[key];
-    const sourceValue = source[key];
-
-    // 递归合并对象（非数组）
-    if (
-      typeof targetValue === 'object' && targetValue !== null &&
-      typeof sourceValue === 'object' && sourceValue !== null &&
-      !Array.isArray(targetValue) && !Array.isArray(sourceValue)
-    ) {
-      result[key] = deepMerge(targetValue, sourceValue);
-    } else {
-      result[key] = sourceValue;
-    }
-  });
-
-  return result;
-}
-
 export default class Lubanno7UniverSheet {
   /**
    * 构造函数
@@ -68,7 +35,7 @@ export default class Lubanno7UniverSheet {
     this.core = new Lubanno7UniverSheetCore(this.sheetContainer, {columns, data, config: this.config});
 
     // 使用内部事件监听器注册，这样即使外部调用off也不会移除这些监听
-    this.core.on('tableInitialized', () => {
+    this.core.eventEmitter.on('tableInitialized', () => {
       this.exposed = {
         attributes: {
           univerInstance: this.core.univerInstance,
@@ -91,8 +58,6 @@ export default class Lubanno7UniverSheet {
           updateRow: (index, rowData, mergeWithExisting) => this.core.updateRow(index, rowData, mergeWithExisting),
           deleteRow: (index) => this.core.deleteRow(index),
           getRowByFilter: (filter) => this.core.getRowByFilter(filter),
-          deleteRow: (index) => this.core.deleteRow(index),
-          getRowByFilter: (filter) => this.core.getRowByFilter(filter),
           getRowByFilterAll: (filter) => this.core.getRowByFilterAll(filter),
           getRowIndexByFilter: (filterObj) => this.core.getRowIndexByFilter(filterObj),
           getRowIndexByFilterAll: (filterObj) => this.core.getRowIndexByFilterAll(filterObj),
@@ -102,7 +67,7 @@ export default class Lubanno7UniverSheet {
       }
     }, true);
 
-    this.core.on('maskVisibilityUpdate', (maskVisibility) => {
+    this.core.eventEmitter.on('maskVisibilityUpdate', (maskVisibility) => {
       this.updateMaskVisibility(maskVisibility);
     }, true);
   }
@@ -112,20 +77,18 @@ export default class Lubanno7UniverSheet {
    * 注册事件监听器
    * @param {string} eventName 事件名称
    * @param {Function} handler 事件处理函数
-   * @returns {Object} 事件监听对象
    */
   on(eventName, handler) {
-    return this.core.on(eventName, handler);
+    this.core.eventEmitter.on(eventName, handler);
   }
 
   /**
    * 移除事件监听器
    * @param {string} eventName 事件名称
    * @param {Function} handler 事件处理函数
-   * @returns {Object} 事件监听对象
    */
   off(eventName, handler) {
-    return this.core.off(eventName, handler);
+    this.core.eventEmitter.off(eventName, handler);
   }
 
   // ========================== DOM操作方法 ==========================
@@ -182,7 +145,7 @@ export default class Lubanno7UniverSheet {
       border: ${loadingOptions.spinnerCircleThickness}px solid ${loadingOptions.spinnerCircleColor};
       border-radius: 50%;
       border-top-color: ${loadingOptions.spinnerCircleHighlightColor};
-      animation: spin ${loadingOptions.spinnerAnimationDuration} linear infinite;
+      animation: lubanno7-univer-sheet-loading-spin ${loadingOptions.spinnerAnimationDuration} linear infinite;
       margin: 0 auto 10px;
     `;
     
@@ -231,14 +194,24 @@ export default class Lubanno7UniverSheet {
     this.emptyDataMask.appendChild(emptyDataContent);
     
     // 添加CSS动画
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+    let animationExists = false;
+    const styleTags = document.querySelectorAll('style');
+    styleTags.forEach(tag => {
+      if (tag.textContent.includes('@keyframes lubanno7-univer-sheet-loading-spin')) {
+        animationExists = true;
       }
-    `;
-    document.head.appendChild(style);
+    });
+    
+    if (!animationExists) {
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes lubanno7-univer-sheet-loading-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
     
     // 组装DOM结构
     this.wrapper.appendChild(this.sheetContainer);
@@ -280,6 +253,42 @@ export default class Lubanno7UniverSheet {
   }
 
   // ========================== 配置相关方法 ==========================
+  /**
+   * 深度合并函数
+   * @param {Object} target 目标对象
+   * @param {Object} source 源对象
+   * @returns {Object} 合并后的对象
+   */
+  deepMerge(target, source) {
+    if (typeof target !== 'object' || target === null) {
+      target = {};
+    }
+    
+    if (typeof source !== 'object' || source === null) {
+      source = {};
+    }
+
+    const result = { ...target };
+
+    Object.keys(source).forEach(key => {
+      const targetValue = result[key];
+      const sourceValue = source[key];
+
+      // 递归合并对象（非数组）
+      if (
+        typeof targetValue === 'object' && targetValue !== null &&
+        typeof sourceValue === 'object' && sourceValue !== null &&
+        !Array.isArray(targetValue) && !Array.isArray(sourceValue)
+      ) {
+        result[key] = this.deepMerge(targetValue, sourceValue);
+      } else {
+        result[key] = sourceValue;
+      }
+    });
+
+    return result;
+  }
+
   /**
    * 生成合并后的配置
    * @param {Object} config 用户配置
@@ -412,7 +421,7 @@ export default class Lubanno7UniverSheet {
       }
     };
     
-    const mergedConfig = deepMerge(defaultConfig, config);
+    const mergedConfig = this.deepMerge(defaultConfig, config);
     
     // 设置默认值
     if(mergedConfig.commonStyle.padding === null) {
